@@ -1,8 +1,8 @@
 package app;
 
 abstract class Item extends Entity {
-    private String name ;
-    private int price;
+    protected  String name ;
+    protected  int price;
     public String getName() {
         return name;
     }
