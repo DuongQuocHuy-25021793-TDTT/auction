@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="900.0" stylesheets="@style.css" 
+            xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+    
+    <left>
+        <VBox styleClass="sidebar" prefWidth="220.0" BorderPane.alignment="CENTER">
+            <children>
+                <Label styleClass="logo-label" text="🌟 SUPER APP" textFill="WHITE">
+                    <VBox.margin>
+                        <Insets bottom="40.0" left="20.0" top="30.0" />
+                    </VBox.margin>
+                </Label>
+                
+                <Button styleClass="nav-btn, active-btn" text="🏠 Trang chủ" maxWidth="Infinity"/>
+                <Button styleClass="nav-btn" text="📊 Thống kê" maxWidth="Infinity"/>
+                <Button styleClass="nav-btn" text="⚙️ Cài đặt" maxWidth="Infinity"/>
+                <Button styleClass="nav-btn" text="🚪 Đăng xuất" maxWidth="Infinity">
+                    <VBox.margin>
+                        <Insets top="250.0" />
+                    </VBox.margin>
+                </Button>
+            </children>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox styleClass="main-content" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+            </padding>
+            <children>
+                <Label styleClass="header-title" text="Tổng quan hệ thống" />
+                <Label styleClass="sub-title" text="Chào mừng bạn quay trở lại!" />
+
+                <HBox spacing="30.0" styleClass="card-container">
+                    <VBox.margin>
+                        <Insets top="30.0" />
+                    </VBox.margin>
+                    <children>
+                        <VBox styleClass="card, card-gradient-1" prefHeight="130.0" prefWidth="250.0">
+                            <Label styleClass="card-title" text="DOANH THU" />
+                            <Label styleClass="card-value" text="$15,230" />
+                        </VBox>
+                        
+                        <VBox styleClass="card, card-gradient-2" prefHeight="130.0" prefWidth="250.0">
+                            <Label styleClass="card-title" text="NGƯỜI DÙNG MỚI" />
+                            <Label styleClass="card-value" text="+1,405" />
+                        </VBox>
+                        
+                        <VBox styleClass="card, card-gradient-3" prefHeight="130.0" prefWidth="250.0">
+                            <Label styleClass="card-title" text="LƯỢT TRUY CẬP" />
+                            <Label styleClass="card-value" text="84,200" />
+                        </VBox>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </center>
+</BorderPane>
