@@ -1,6 +1,7 @@
-package app;
+package app.models;
 
-abstract class Item extends Entity {
+
+public abstract class Item extends Entity {
     protected  String name ;
     protected  int price;
     public String getName() {

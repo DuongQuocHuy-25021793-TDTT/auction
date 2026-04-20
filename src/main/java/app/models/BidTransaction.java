@@ -1,4 +1,5 @@
-package app;
+package app.models;
+
 import java.time.LocalDateTime;
 
 public class BidTransaction {

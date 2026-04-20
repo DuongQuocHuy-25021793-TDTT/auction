@@ -1,9 +1,9 @@
-package app;
+package app.models;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-class Auction {
+public class Auction {
     private List<Item> item ;
     private LocalDateTime startTime;
     private LocalDateTime StopTime;

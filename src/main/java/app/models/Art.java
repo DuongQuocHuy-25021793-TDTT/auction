@@ -1,6 +1,6 @@
-package app;
+package app.models;
 
-class Art extends Item {
+public class Art extends Item {
 
     @Override
     public String toString() {

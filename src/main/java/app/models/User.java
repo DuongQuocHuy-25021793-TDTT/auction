@@ -1,6 +1,7 @@
-package app;
+package app.models;
 
-abstract class User extends Entity{
+
+public abstract class User extends Entity {
     protected String name;
 
     public String getName() {

@@ -1,6 +1,6 @@
-package app;
+package app.models;
 
-class Electronics extends Item {
+public class Electronics extends Item {
 
     @Override
     public String toString() {

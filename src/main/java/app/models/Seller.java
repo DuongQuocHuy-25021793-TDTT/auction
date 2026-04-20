@@ -1,6 +1,6 @@
-package app;
+package app.models;
 
-class Seller extends User {
+public class Seller extends User {
     @Override
         public String toString() {
             return "Seller" + getName();

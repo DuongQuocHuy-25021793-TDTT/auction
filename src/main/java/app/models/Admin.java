@@ -1,6 +1,6 @@
-package app;
+package app.models;
 
-class Admin extends User {
+public class Admin extends User {
 
     public Admin(String name) {
         this.name = name;
@@ -8,7 +8,7 @@ class Admin extends User {
 
     @Override
         public String toString(){
-            return "Amin" + getName();  
+            return "Admin" + getName();
         }
     
 }

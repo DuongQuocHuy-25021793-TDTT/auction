@@ -1,5 +1,6 @@
-package app;
-class Bidder extends User {
+package app.models;
+
+public class Bidder extends User {
 
     @Override
     public String toString() {
