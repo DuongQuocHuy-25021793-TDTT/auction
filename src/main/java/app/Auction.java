@@ -1,43 +1,56 @@
 package app;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
-class Auction {
-    private List<Item> item ;
+class Auction  extends  Entity {
+    private Item item ;
     private LocalDateTime startTime;
-    private LocalDateTime StopTime;
+    private LocalDateTime stopTime;
+    private double currentHighestPrice;
     private String status;
-    public Auction(List<Item> item, LocalDateTime startTime, LocalDateTime stopTime, String status) {
+    public Auction(String id, Item  item, LocalDateTime startTime, LocalDateTime stopTime,
+            double currentHighestPrice, String status) {
+        super(id);
         this.item = item;
         this.startTime = startTime;
-        this.StopTime = stopTime;
+        this.stopTime = stopTime;
+        this.currentHighestPrice = currentHighestPrice;
         this.status = status;
     }
-    public List<Item> getItem() {
+    public Item getItem() {
         return item;
     }
     public LocalDateTime getStartTime() {
         return startTime;
     }
     public LocalDateTime getStopTime() {
-        return StopTime;
+        return stopTime;
+    }
+    public double getCurrentHighestPrice() {
+        return currentHighestPrice;
     }
     public String getStatus() {
         return status;
     }
-    public void setItem(List<Item> item) {
+    public void setItem(Item item) {
         this.item = item;
     }
     public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
     }
     public void setStopTime(LocalDateTime stopTime) {
-        StopTime = stopTime;
+        this.stopTime = stopTime;
+    }
+    public void setCurrentHighestPrice(double currentHighestPrice) {
+        this.currentHighestPrice = currentHighestPrice;
     }
     public void setStatus(String status) {
         this.status = status;
     }
+    
+    
+    
+    
     
     
 

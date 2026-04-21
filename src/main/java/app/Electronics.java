@@ -1,18 +1,16 @@
 package app;
 
-class Electronics extends Item {
+public class Electronics extends Item {
+    private int warrantyMonths;
 
+    public Electronics(String id, String name, String description, double startingPrice, int warrantyMonths) {
+        super(id, name, description, startingPrice);
+        this.warrantyMonths = warrantyMonths;
+    }
     @Override
-    public String toString() {
-        return "Electronics" + getName() + getPrice();
+    public void printInfo(){
+        System.out.println("Đồ điện tử: " + name + " - Bảo hành: " + warrantyMonths + "Tháng");
     }
-
-    public Electronics(String id , String name , int price) {
-        this.id = id;
-        this.name = name;
-        this.price = price;
-    }
-    
     
     
 }

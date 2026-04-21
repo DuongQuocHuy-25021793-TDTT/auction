@@ -1,14 +1,15 @@
 package app;
 
-class Admin extends User {
+public class Admin extends User {
 
-    public Admin(String name) {
-        this.name = name;
+    
+
+    public Admin(String id, String username, String password) {
+        super(id, username, password);
     }
 
-    @Override
-        public String toString(){
-            return "Amin" + getName();  
-        }
+    public void cancelAuction(Auction auction){
+        System.out.println("Admin " + this.username + " đã hủy phiên đấu giá: " + auction.getId());
+    }
     
 }

@@ -1,16 +1,10 @@
 package app;
-class Bidder extends User {
+public class Bidder extends User {
 
-    @Override
-    public String toString() {
-        return "Bidder" + getName() ;
-
+    public Bidder(String id , String username ,String password ) {
+        super(id, username, password);
     }
-
-    public Bidder(String name) {
-        this.name = name;
+    public void placeBid(Auction auction, double amount){
+        
     }
-    
-    
-    
 }

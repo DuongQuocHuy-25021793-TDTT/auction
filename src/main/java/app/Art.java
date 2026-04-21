@@ -1,18 +1,16 @@
 package app;
 
-class Art extends Item {
-
+public class Art extends Item {
+    private String artist;
+    private int creationYear;
+    public Art(String id, String name, String description, double startingPrice, String artist, int creationYear) {
+        super(id, name, description, startingPrice);
+        this.artist = artist;
+        this.creationYear = creationYear;
+    }
     @Override
-    public String toString() {
-        return "Art" + getName() + getPrice();
+    public void printInfo(){
+        System.out.println("Tác phẩm nghệ thuật: " + name + " - Tác giả: " + artist + " (" + creationYear + ")");
     }
-
-    public Art(String id , String name , int price) {
-        this.id = id;
-        this.name = name;
-        this.price = price;
-        
-    }
-    
     
 }

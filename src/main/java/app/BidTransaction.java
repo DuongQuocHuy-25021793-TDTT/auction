@@ -1,31 +1,49 @@
 package app;
 import java.time.LocalDateTime;
 
-public class BidTransaction {
-    private Bidder bidder;
-    private double amount;
-    private LocalDateTime time;
-    public BidTransaction(Bidder bidder, double amount, LocalDateTime time) {
-        this.bidder = bidder;
-        this.amount = amount;
-        this.time = time;
+public class BidTransaction extends Entity {
+    private String auctionId;
+    private String bidderId;
+    private double bidAmount;
+    private LocalDateTime timestamp;
+    public BidTransaction(String id, String auctionId, String bidderId, double bidAmount, LocalDateTime timestamp) {
+        super(id);
+        this.auctionId = auctionId;
+        this.bidderId = bidderId;
+        this.bidAmount = bidAmount;
+        this.timestamp = timestamp;
     }
-    public Bidder getBidder() {
-        return bidder;
+    public String getAuctionId() {
+        return auctionId;
     }
-    public double getAmount() {
-        return amount;
+    public String getBidderId() {
+        return bidderId;
     }
-    public LocalDateTime getTime() {
-        return time;
+    public double getBidAmount() {
+        return bidAmount;
     }
-    public void setBidder(Bidder bidder) {
-        this.bidder = bidder;
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
-    public void setAmount(double amount) {
-        this.amount = amount;
+    public void setAuctionId(String auctionId) {
+        this.auctionId = auctionId;
     }
-    public void setTime(LocalDateTime time) {
-        this.time = time;
+    public void setBidderId(String bidderId) {
+        this.bidderId = bidderId;
+    }
+    public void setBidAmount(double bidAmount) {
+        this.bidAmount = bidAmount;
+    }
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+    public double getBidAmount1(){
+        return bidAmount;
+    }
+    public LocalDateTime getTimestamp1(){
+        return timestamp;
+    }
+    public String getBidderId1(){
+        return bidderId;
     }
 }
