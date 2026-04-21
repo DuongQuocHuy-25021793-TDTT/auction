@@ -28,7 +28,4 @@ public class BidTransaction {
     public void setTime(LocalDateTime time) {
         this.time = time;
     }
-    
-
-
 }
