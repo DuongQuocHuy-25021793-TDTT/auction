@@ -7,39 +7,29 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="600.0" prefWidth="800.0" stylesheets="@register.css" styleClass="main-background"
-           xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="application.RegisterController">
-           
+<StackPane prefHeight="600.0" prefWidth="800.0"
+           xmlns="http://javafx.com/javafx/8"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="app.controller.SignupController">
+
     <children>
-        <VBox styleClass="register-card" alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="450.0" prefWidth="380.0" spacing="20.0">
+        <VBox alignment="CENTER" spacing="15.0" prefWidth="380.0">
             <padding>
                 <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
             </padding>
-            <children>
-                <Label styleClass="title-text" text="Tạo Tài Khoản">
-                    <VBox.margin>
-                        <Insets bottom="10.0" />
-                    </VBox.margin>
-                </Label>
-                
-                <TextField fx:id="fullNameField" styleClass="input-field" promptText="Họ và tên" />
-                <TextField fx:id="emailField" styleClass="input-field" promptText="Email" />
-                <PasswordField fx:id="passwordField" styleClass="input-field" promptText="Mật khẩu" />
-                <PasswordField fx:id="confirmPasswordField" styleClass="input-field" promptText="Xác nhận mật khẩu" />
-                
-                <Label fx:id="errorLabel" textFill="#e74c3c" visible="false"/>
-                
-                <Button styleClass="register-btn" text="ĐĂNG KÝ NGAY" maxWidth="Infinity" onAction="#handleRegisterAction">
-                    <VBox.margin>
-                        <Insets top="10.0" />
-                    </VBox.margin>
-                </Button>
-                
-                <Label styleClass="login-link" text="Đã có tài khoản? Đăng nhập tại đây" onMouseClicked="#handleGoToLogin" />
-            </children>
+
+            <Label text="TẠO TÀI KHOẢN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+            <TextField fx:id="fullNameField" promptText="Họ và tên"/>
+            <TextField fx:id="emailField" promptText="Email"/>
+            <PasswordField fx:id="passwordField" promptText="Mật khẩu"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="Xác nhận mật khẩu"/>
+
+            <Label fx:id="errorLabel" textFill="RED" visible="false"/>
+
+            <Button text="ĐĂNG KÝ" maxWidth="Infinity" onAction="#handleRegisterAction"/>
+            <Button text="QUAY LẠI ĐĂNG NHẬP" maxWidth="Infinity" onAction="#handleGoToLogin"/>
         </VBox>
     </children>
 </StackPane>
