@@ -18,7 +18,7 @@ public class LoginController {
     private Label lblMessage;
 
     @FXML
-    public void handleLogin(ActionEvent event) {
+    public void handleLoginButtonAction(ActionEvent event) {
         String username = txtUsername.getText();
         String password = txtPassword.getText();
 

@@ -10,7 +10,7 @@
 <VBox alignment="CENTER" spacing="15.0" prefHeight="300.0" prefWidth="350.0" 
       xmlns:fx="http://javafx.com/fxml/1" 
       xmlns="http://javafx.com/javafx/8" 
-      fx:controller="application.LoginController">
+      fx:controller="app.controller.LoginController">
     
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
