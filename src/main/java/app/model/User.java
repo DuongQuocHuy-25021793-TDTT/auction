@@ -1,4 +1,4 @@
-package app;
+package app.model;
 
 public abstract class User extends Entity{
     protected String username;

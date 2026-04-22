@@ -1,4 +1,4 @@
-package app;
+package app.model;
 abstract class Entity{
     protected  String id;
     public Entity(String id){

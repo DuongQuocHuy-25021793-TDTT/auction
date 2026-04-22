@@ -1,4 +1,5 @@
-package app;
+package app.model;
+
 public class Bidder extends User {
 
     public Bidder(String id , String username ,String password ) {

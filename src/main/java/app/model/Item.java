@@ -1,4 +1,4 @@
-package app;
+package app.model;
 
 public abstract class Item extends Entity {
     protected  String name ;

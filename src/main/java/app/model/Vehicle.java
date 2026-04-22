@@ -1,4 +1,5 @@
-package app;
+package app.model;
+
 public class Vehicle extends Item {
     private String  brand;
     private int mileage;

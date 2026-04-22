@@ -1,4 +1,4 @@
-package app;
+package app.model;
 
 public class Admin extends User {
 

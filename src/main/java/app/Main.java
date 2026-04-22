@@ -1,27 +1,23 @@
 package app;
+
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
-
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws Exception {
+
+        Parent root = FXMLLoader.load(getClass().getResource("/Login.fxml"));
         
-        Label label = new Label("Chào mừng đến với Hệ thống Đấu giá!");
-        StackPane root = new StackPane(label);
-        
-        Scene scene = new Scene(root, 800, 600);
-        
-        primaryStage.setTitle("Ứng dụng Đấu Giá Trực Tuyến - Client");
-        primaryStage.setScene(scene);
+        primaryStage.setTitle("Hệ thống Đấu giá - Đăng nhập");
+        primaryStage.setScene(new Scene(root));
         primaryStage.show();
     }
 
     public static void main(String[] args) {
-        // Khởi chạy giao diện JavaFX
         launch(args);
     }
 }
