@@ -1,4 +1,6 @@
 package app.controller;
+
+import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -6,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class SignupController {
 
@@ -26,29 +29,40 @@ public class SignupController {
 
     @FXML
     public void handleRegisterAction() {
-        String fullName = fullNameField.getText();
-        String email = emailField.getText();
+        String fullName = fullNameField.getText().trim();
+        String email = emailField.getText().trim();
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
 
         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            errorLabel.setText("Vui lòng nhập đầy đủ thông tin!");
-            errorLabel.setVisible(true);
+            showMessage("Vui lòng nhập đầy đủ thông tin!", "red");
             return;
         }
 
         if (!password.equals(confirmPassword)) {
-            errorLabel.setText("Mật khẩu xác nhận không khớp!");
-            errorLabel.setVisible(true);
+            showMessage("Mật khẩu xác nhận không khớp!", "red");
             return;
         }
 
-        errorLabel.setText("Đăng ký thành công!");
-        errorLabel.setVisible(true);
+        showMessage("Đăng ký thành công!", "green");
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(1.2));
+        pause.setOnFinished(e -> goBackToLogin());
+        pause.play();
     }
 
     @FXML
     public void handleGoToLogin() {
+        goBackToLogin();
+    }
+
+    private void showMessage(String message, String color) {
+        errorLabel.setText(message);
+        errorLabel.setStyle("-fx-text-fill: " + color + ";");
+        errorLabel.setVisible(true);
+    }
+
+    private void goBackToLogin() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Login.fxml"));
             Scene scene = new Scene(loader.load());
@@ -61,4 +75,3 @@ public class SignupController {
         }
     }
 }
-
