@@ -1,11 +1,41 @@
 package app.model;
 
-public class Bidder extends User {
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
-    public Bidder(String id , String username ,String password ) {
+public class Bidder extends User {
+    private List<BidTransaction> bidHistory; // Tạo danh sách lưu lịch sử đấu giá
+
+    public Bidder(String id, String username, String password) {
         super(id, username, password);
+        this.bidHistory = new ArrayList<>();
     }
-    public void placeBid(Auction auction, double amount){
-        
+
+    public boolean placeBid(Auction auction, double amount) {
+        if (auction == null) {
+            System.out.println("Không tìm thấy giao dịch.");
+            return false;
+        }
+        if (amount <= 0) {
+            System.out.println("Số tiền đấu giá phải lớn hơn 0.");
+            return false;
+        }
+
+        BidTransaction bid = new BidTransaction(
+                UUID.randomUUID().toString(), // Tạo ID giao dịch ngẫu nhiên
+                auction.getId(),
+                getId(),
+                amount,
+                LocalDateTime.now()
+        );
+
+        boolean success = auction.placeBid(bid);
+        if (success) {
+            this.bidHistory.add(bid);
+            System.out.println(username + " đã đặt giá tiền là: " + amount);
+        }
+        return success;
     }
 }
