@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class Bidder extends User {
-    private List<BidTransaction> bidHistory; // Tạo danh sách lưu lịch sử đấu giá
+    private List<BidTransaction> bidHistory; 
 
     public Bidder(String id, String username, String password) {
         super(id, username, password);
@@ -24,7 +24,7 @@ public class Bidder extends User {
         }
 
         BidTransaction bid = new BidTransaction(
-                UUID.randomUUID().toString(), // Tạo ID giao dịch ngẫu nhiên
+                UUID.randomUUID().toString(), 
                 auction.getId(),
                 getId(),
                 amount,
