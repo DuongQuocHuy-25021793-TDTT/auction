@@ -38,4 +38,8 @@ public class Bidder extends User {
         }
         return success;
     }
+
+    public List<BidTransaction>  getBidHistory() {
+        return bidHistory;
+    }
 }
