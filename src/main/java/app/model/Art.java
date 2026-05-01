@@ -8,6 +8,15 @@ public class Art extends Item {
         this.artist = artist;
         this.creationYear = creationYear;
     }
+    
+    public String getArtist() {
+        return artist;
+    }
+
+    public int getCreationYear() {
+        return creationYear;
+    }
+
     @Override
     public void printInfo(){
         System.out.println("Tác phẩm nghệ thuật: " + name + " - Tác giả: " + artist + " (" + creationYear + ")");
