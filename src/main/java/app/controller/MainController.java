@@ -9,19 +9,19 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
 public class MainController {
 
     @FXML
     private FlowPane itemContainer;
+    private final Gson gson = new Gson();
 
     @FXML
     public void initialize() {
        
-        addSampleItems();
+        loadAuctionItems();
     }
 
-    private void addSampleItems() {
+    private void loadAuctionItems() {
   
         for (int i = 1; i <= 6; i++) {
             VBox card = new VBox(10);
