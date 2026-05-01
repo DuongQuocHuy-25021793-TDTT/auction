@@ -7,10 +7,14 @@ public class Electronics extends Item {
         super(id, name, description, startingPrice);
         this.warrantyMonths = warrantyMonths;
     }
+    public int getWarrantyMonths() {
+        return warrantyMonths;
+    }
+    
     @Override
     public void printInfo(){
         System.out.println("Đồ điện tử: " + name + " - Bảo hành: " + warrantyMonths + "Tháng");
     }
-    
+
     
 }
