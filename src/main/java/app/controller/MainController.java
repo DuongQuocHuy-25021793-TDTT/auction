@@ -1,24 +1,25 @@
 package app.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import com.google.gson.Gson;
+
 import app.model.Art;
 import app.model.Electronics;
 import app.model.Item;
-import app.model.Message;
-import app.model.BidTransaction;
-import app.network.ClientConnection;
-import com.google.gson.Gson;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public class MainController {
 
@@ -39,9 +40,11 @@ public class MainController {
 
 
         List<Item> itemList = new ArrayList<>();
-        itemList.add(new Art("A01", "Tranh sơn dầu Phố Cổ", 1200.0, "Bùi Xuân Phái"));
-        itemList.add(new Electronics("E01", "iPhone 15 Pro Max", 1000.0, 12));
-        itemList.add(new Art("A02", "Tượng gỗ tạc tay", 500.0, "Nghệ nhân nặc danh"));
+        itemList.add(new Art("A01", "Tranh sơn dầu Phố Cổ", "Tác phẩm vẽ về Hà Nội xưa", 1200.0, "Bùi Xuân Phái", 1980));
+        itemList.add(new Art("A02", "Tượng gỗ tạc tay", "Tượng điêu khắc từ gỗ lũa nguyên khối", 500.0, "Nghệ nhân nặc danh", 2023));
+
+        itemList.add(new Electronics("E01", "iPhone 15 Pro Max", "Hàng chính hãng VN/A mới 100%", 1000.0, 12));
+        itemList.add(new Electronics("E02", "MacBook Pro M3", "Cấu hình 16GB RAM, 512GB SSD", 2500.0, 24));
 
         for (Item item : itemList) {
             createItemCard(item);
@@ -70,7 +73,7 @@ public class MainController {
             detailLabel.setText(" Bảo hành: " + ((Electronics) item).getWarrantyMonths() + " tháng");
         }
 
-        // Nút đấu giá
+        
         Button bidBtn = new Button("Đặt giá ngay");
         bidBtn.getStyleClass().add("btn-primary");
         bidBtn.setMaxWidth(Double.MAX_VALUE);
