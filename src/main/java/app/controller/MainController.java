@@ -1,14 +1,19 @@
 package app.controller;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.google.gson.Gson;
 
 import app.model.Art;
+import app.model.BidTransaction;
 import app.model.Electronics;
 import app.model.Item;
+import app.model.Message;
+import app.network.ClientConnection;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -30,21 +35,25 @@ public class MainController {
 
     @FXML
     public void initialize() {
-     
+
+        ClientConnection.getInstance().connect("localhost", 8888);
+
+  
         loadAuctionItems();
     }
 
- 
+  
     private void loadAuctionItems() {
         itemContainer.getChildren().clear();
 
-
         List<Item> itemList = new ArrayList<>();
-        itemList.add(new Art("A01", "Tranh sơn dầu Phố Cổ", "Tác phẩm vẽ về Hà Nội xưa", 1200.0, "Bùi Xuân Phái", 1980));
-        itemList.add(new Art("A02", "Tượng gỗ tạc tay", "Tượng điêu khắc từ gỗ lũa nguyên khối", 500.0, "Nghệ nhân nặc danh", 2023));
+        
+  
+        itemList.add(new Art("A01", "Tranh Phố Cổ", "Tranh sơn dầu Hà Nội", 1200.0, "Bùi Xuân Phái", 1980));
+        itemList.add(new Art("A02", "Tượng Gỗ Lũa", "Tượng nghệ thuật điêu khắc", 500.0, "Nghệ nhân Việt", 2023));
 
-        itemList.add(new Electronics("E01", "iPhone 15 Pro Max", "Hàng chính hãng VN/A mới 100%", 1000.0, 12));
-        itemList.add(new Electronics("E02", "MacBook Pro M3", "Cấu hình 16GB RAM, 512GB SSD", 2500.0, 24));
+        itemList.add(new Electronics("E01", "iPhone 15 Pro", "Hàng chính hãng Apple", 1000.0, 12));
+        itemList.add(new Electronics("E02", "MacBook M3", "Laptop đồ họa chuyên nghiệp", 2500.0, 24));
 
         for (Item item : itemList) {
             createItemCard(item);
@@ -55,8 +64,7 @@ public class MainController {
     private void createItemCard(Item item) {
         VBox card = new VBox(12);
         card.getStyleClass().add("item-card");
-        card.setPrefWidth(250); 
-
+        card.setPrefWidth(250);
 
         Label nameLabel = new Label(item.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
@@ -67,13 +75,13 @@ public class MainController {
         Label detailLabel = new Label();
         detailLabel.setStyle("-fx-text-fill: #7F8C8D; -fx-font-style: italic;");
         
+
         if (item instanceof Art) {
-            detailLabel.setText(" Họa sĩ: " + ((Art) item).getArtist());
+            detailLabel.setText("🎨 Họa sĩ: " + ((Art) item).getArtist());
         } else if (item instanceof Electronics) {
-            detailLabel.setText(" Bảo hành: " + ((Electronics) item).getWarrantyMonths() + " tháng");
+            detailLabel.setText("💻 Bảo hành: " + ((Electronics) item).getWarrantyMonths() + " tháng");
         }
 
-        
         Button bidBtn = new Button("Đặt giá ngay");
         bidBtn.getStyleClass().add("btn-primary");
         bidBtn.setMaxWidth(Double.MAX_VALUE);
@@ -86,7 +94,7 @@ public class MainController {
 
     private void handleBidAction(Item item) {
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Đấu giá sản phẩm");
+        dialog.setTitle("Đấu giá");
         dialog.setHeaderText("Sản phẩm: " + item.getName());
         dialog.setContentText("Nhập giá bạn muốn đặt (USD):");
 
@@ -95,21 +103,35 @@ public class MainController {
             try {
                 double bidAmount = Double.parseDouble(bidAmountStr);
                 if (bidAmount <= item.getStartingPrice()) {
-                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá đặt phải cao hơn giá hiện tại!");
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá đặt phải cao hơn giá sàn!");
                 } else {
-        
+                    // GỬI LÊN SERVER
                     sendBidToServer(item.getId(), bidAmount);
                 }
             } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.WARNING, "Chú ý", "Vui lòng chỉ nhập số tiền hợp lệ.");
+                showAlert(Alert.AlertType.WARNING, "Chú ý", "Vui lòng nhập số tiền hợp lệ.");
             }
         });
     }
 
-
+ 
     private void sendBidToServer(String itemId, double amount) {
+ 
+        String transId = UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now();
 
-        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Yêu cầu đặt giá đã được gửi lên hệ thống!");
+        BidTransaction transaction = new BidTransaction(transId, itemId, "User_001", amount, now);
+        
+
+        String jsonData = gson.toJson(transaction);
+        
+
+        Message message = new Message("BID", jsonData);
+        
+  
+        ClientConnection.getInstance().sendMessage(message);
+
+        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi yêu cầu đặt giá " + amount + " USD!");
     }
 
     @FXML
@@ -119,7 +141,6 @@ public class MainController {
             Scene scene = new Scene(loader.load());
             Stage stage = (Stage) itemContainer.getScene().getWindow();
             stage.setScene(scene);
-            stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
         } catch (Exception e) {
             e.printStackTrace();
         }
