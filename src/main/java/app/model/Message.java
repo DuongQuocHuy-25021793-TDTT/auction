@@ -1,16 +1,16 @@
 package app.model;
 public class Message {
-    private String type;
-    private String payload;
-    public Message(String type, String payload) {
-        this.type = type;
-        this.payload = payload;
+    private String action;
+    private String data;
+    public Message(String action, String data) {
+        this.action = action;
+        this.data = data;
     }
-    public String getType() {
-        return type;
+    public String getAction() {
+        return action;
     }
-    public String getPayload() {
-        return payload;
+    public String getData() {
+        return data;
     }
     
 }
