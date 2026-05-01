@@ -31,7 +31,17 @@ public class MainController {
     @FXML
     private FlowPane itemContainer;
 
-    private final Gson gson = new Gson();
+    private final Gson gson = new com.google.gson.GsonBuilder()
+    .registerTypeAdapter(java.time.LocalDateTime.class, new com.google.gson.TypeAdapter<java.time.LocalDateTime>() {
+        @Override
+        public void write(com.google.gson.stream.JsonWriter out, java.time.LocalDateTime value) throws java.io.IOException {
+            out.value(value != null ? value.toString() : null);
+        }
+        @Override
+        public java.time.LocalDateTime read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
+            return java.time.LocalDateTime.parse(in.nextString());
+        }
+    }).create();
 
     @FXML
     public void initialize() {
