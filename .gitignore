@@ -25,3 +25,9 @@ replay_pid*
 
 
 target/
+# Bo qua cac file cua IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
