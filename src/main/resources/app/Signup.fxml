@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane prefHeight="600.0" prefWidth="800.0"
+           xmlns="http://javafx.com/javafx/8"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="app.controller.SignupController">
+
+    <children>
+        <VBox alignment="CENTER" spacing="15.0" prefWidth="380.0">
+            <padding>
+                <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+            </padding>
+
+            <Label text="TẠO TÀI KHOẢN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+            <TextField fx:id="fullNameField" promptText="Họ và tên"/>
+            <TextField fx:id="emailField" promptText="Email"/>
+            <PasswordField fx:id="passwordField" promptText="Mật khẩu"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="Xác nhận mật khẩu"/>
+
+            <Label fx:id="errorLabel" textFill="RED" visible="false"/>
+
+            <Button text="ĐĂNG KÝ" maxWidth="Infinity" onAction="#handleRegisterAction"/>
+            <Button text="QUAY LẠI ĐĂNG NHẬP" maxWidth="Infinity" onAction="#handleGoToLogin"/>
+        </VBox>
+    </children>
+</StackPane>
