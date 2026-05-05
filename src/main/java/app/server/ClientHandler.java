@@ -1,18 +1,19 @@
 package app.server;
 
-import app.database.AppDatabase;
-import app.model.Auction;
-import app.model.BidTransaction;
-import app.model.Message;
-import com.google.gson.Gson;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.time.LocalDateTime;
 
+import com.google.gson.Gson;
+
+import app.database.AppDatabase;
+import app.model.Auction;
+import app.model.BidTransaction;
+import app.model.Message;
+
 public class ClientHandler implements Runnable {
-    private final Socket socket;
+    private Socket socket;
 
     private final Gson gson = new com.google.gson.GsonBuilder()
             .registerTypeAdapter(LocalDateTime.class, new com.google.gson.TypeAdapter<LocalDateTime>() {

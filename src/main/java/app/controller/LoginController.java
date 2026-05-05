@@ -44,7 +44,7 @@ public class LoginController {
         Session.setCurrentAccount(account);
 
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Main.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Main.fxml"));
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
@@ -59,7 +59,7 @@ public class LoginController {
     @FXML
     public void goToSignup(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Signup.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) usernameField.getScene().getWindow();

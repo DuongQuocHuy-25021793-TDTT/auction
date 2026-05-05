@@ -1,5 +1,12 @@
 package app.controller;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+import com.google.gson.Gson;
+
 import app.database.AppDatabase;
 import app.database.Session;
 import app.model.Account;
@@ -10,7 +17,6 @@ import app.model.Electronics;
 import app.model.Item;
 import app.model.Message;
 import app.network.ClientConnection;
-import com.google.gson.Gson;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -23,14 +29,14 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
 public class MainController {
 
     @FXML
     private FlowPane itemContainer;
+    @FXML
+    private Button loginButton;
+    @FXML
+    private Button signUpButton;
 
     private final AppDatabase database = AppDatabase.getInstance();
 
@@ -51,6 +57,34 @@ public class MainController {
     public void initialize() {
         ClientConnection.getInstance().connect("localhost", 8888);
         loadAuctionItems();
+    }
+
+    @FXML
+    public void login() {
+        try {
+            FXMLLoader loginLoader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
+            Scene loginScene = new Scene(loginLoader.load());
+
+            Stage loginStage = (Stage) loginButton.getScene().getWindow();
+            loginStage.setScene(loginScene);
+        }
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+    
+    @FXML
+    public void signUp() {
+        try {
+            FXMLLoader loginLoader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
+            Scene signUpScene = new Scene(loginLoader.load());
+
+            Stage signUpStage = (Stage) signUpButton.getScene().getWindow();
+            signUpStage.setScene(signUpScene);
+        }
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     private void loadAuctionItems() {
