@@ -1,10 +1,8 @@
 package app.controller;
 
-import com.google.gson.Gson;
-
-import app.model.Bidder;
-import app.model.Message;
-import app.network.ClientConnection;
+import app.database.AppDatabase;
+import app.database.Session;
+import app.model.Account;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -27,7 +25,7 @@ public class LoginController {
 
     @FXML
     public void handleLoginButtonAction(ActionEvent event) {
-        String username = usernameField.getText();
+        String username = usernameField.getText().trim();
         String password = passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
@@ -36,24 +34,14 @@ public class LoginController {
             return;
         }
 
-        System.out.println("Đang đăng nhập tài khoản: " + username);
-
-    
-        try {
-      
-            ClientConnection.getInstance().connect("localhost", 8080);
-            
-     
-            Bidder loginUser = new Bidder("temp_id", username, password);
-            String userPayload = new Gson().toJson(loginUser); 
-            
-       
-            Message loginMsg = new Message("LOGIN", userPayload);
-            ClientConnection.getInstance().sendMessage(loginMsg);
-        } catch (Exception e) {
-            System.out.println("Lỗi gửi dữ liệu lên Server: " + e.getMessage());
+        Account account = AppDatabase.getInstance().authenticate(username, password);
+        if (account == null) {
+            statusLabel.setText("Sai email hoặc mật khẩu!");
+            statusLabel.setStyle("-fx-text-fill: red;");
+            return;
         }
-   
+
+        Session.setCurrentAccount(account);
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/Main.fxml"));
@@ -61,7 +49,7 @@ public class LoginController {
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
             stage.setScene(scene);
-            stage.setTitle("Hệ thống đấu giá - Trang chủ");
+            stage.setTitle("Auction System - " + account.getRole());
         } catch (Exception e) {
             e.printStackTrace();
             statusLabel.setText("Không mở được màn hình chính!");

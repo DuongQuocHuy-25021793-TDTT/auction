@@ -1,5 +1,8 @@
 package app.controller;
 
+import app.database.AppDatabase;
+import app.model.Account;
+import app.model.AccountRole;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -9,6 +12,8 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import java.util.UUID;
 
 public class SignupController {
 
@@ -41,6 +46,24 @@ public class SignupController {
 
         if (!password.equals(confirmPassword)) {
             showMessage("Mật khẩu xác nhận không khớp!", "red");
+            return;
+        }
+
+        AppDatabase database = AppDatabase.getInstance();
+        if (database.usernameExists(email)) {
+            showMessage("Tài khoản đã tồn tại", "red");
+            return;
+        }
+
+        Account account = new Account(
+                "U_" + UUID.randomUUID(),
+                email,
+                password,
+                AccountRole.GUEST
+        );
+
+        if (!database.addAccount(account)) {
+            showMessage("Không thể tạo tài khoản!", "red");
             return;
         }
 
