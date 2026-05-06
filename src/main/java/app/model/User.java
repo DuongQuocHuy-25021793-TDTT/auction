@@ -3,6 +3,9 @@ package app.model;
 public abstract class User extends Entity{
     protected String username;
     protected String password;
+    public User() {
+        super(""); // Tạm truyền chuỗi rỗng cho class Entity cha
+    }
 
     public User(String id , String username, String password){
         super(id);

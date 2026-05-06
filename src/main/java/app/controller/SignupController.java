@@ -38,6 +38,15 @@ public class SignupController {
         String email = emailField.getText().trim();
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
+        try {
+            app.model.Seller newSeller = new app.model.Seller("ID_TEMP", email, password);
+
+            app.SecurityUtils.saveAccount(newSeller, "account_data.json");
+
+            System.out.println("Đăng ký thành công! Đã lưu và mã hóa vào account_data.json");
+        } catch (Exception e) {
+            System.out.println("Lỗi lưu file: " + e.getMessage());
+        }
 
         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showMessage("Vui lòng nhập đầy đủ thông tin!", "red");
