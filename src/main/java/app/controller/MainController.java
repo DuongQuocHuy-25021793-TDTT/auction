@@ -1,30 +1,23 @@
 package app.controller;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
-import com.google.gson.Gson;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import app.database.AppDatabase;
-import app.database.Session;
-import app.model.Account;
 import app.model.Art;
 import app.model.Auction;
-import app.model.BidTransaction;
 import app.model.Electronics;
-import app.model.Item;
-import app.model.Message;
-import app.network.ClientConnection;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -33,163 +26,155 @@ public class MainController {
 
     @FXML
     private FlowPane itemContainer;
-    @FXML
-    private Button loginButton;
-    @FXML
-    private Button signUpButton;
-
-    private final AppDatabase database = AppDatabase.getInstance();
-
-    private final Gson gson = new com.google.gson.GsonBuilder()
-            .registerTypeAdapter(LocalDateTime.class, new com.google.gson.TypeAdapter<LocalDateTime>() {
-                @Override
-                public void write(com.google.gson.stream.JsonWriter out, LocalDateTime value) throws java.io.IOException {
-                    out.value(value != null ? value.toString() : null);
-                }
-
-                @Override
-                public LocalDateTime read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
-                    return LocalDateTime.parse(in.nextString());
-                }
-            }).create();
 
     @FXML
     public void initialize() {
-        ClientConnection.getInstance().connect("localhost", 8888);
-        loadAuctionItems();
+        handleShowAll(null); 
+    }
+
+
+    @FXML
+    public void handleShowAll(ActionEvent event) {
+        loadAuctionsToUI(AppDatabase.getInstance().getAuctions());
     }
 
     @FXML
-    public void login() {
-        try {
-            FXMLLoader loginLoader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
-            Scene loginScene = new Scene(loginLoader.load());
-
-            Stage loginStage = (Stage) loginButton.getScene().getWindow();
-            loginStage.setScene(loginScene);
-        }
-        catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
-    }
-    
-    @FXML
-    public void signUp() {
-        try {
-            FXMLLoader loginLoader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
-            Scene signUpScene = new Scene(loginLoader.load());
-
-            Stage signUpStage = (Stage) signUpButton.getScene().getWindow();
-            signUpStage.setScene(signUpScene);
-        }
-        catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
-    }
-
-    private void loadAuctionItems() {
-        itemContainer.getChildren().clear();
-
-        for (Auction auction : database.getAuctions()) {
-            createAuctionCard(auction);
-        }
-    }
-
-    private void createAuctionCard(Auction auction) {
-        Item item = auction.getItem();
-
-        VBox card = new VBox(12);
-        card.getStyleClass().add("item-card");
-        card.setPrefWidth(250);
-
-        Label nameLabel = new Label(item.getName());
-        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
-
-        Label priceLabel = new Label("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-        priceLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
-
-        Label detailLabel = new Label();
-        detailLabel.setStyle("-fx-text-fill: #7F8C8D; -fx-font-style: italic;");
-
-        if (item instanceof Art) {
-            detailLabel.setText("Nghệ sĩ: " + ((Art) item).getArtist());
-        } else if (item instanceof Electronics) {
-            detailLabel.setText("Bảo hành: " + ((Electronics) item).getWarrantyMonths() + " tháng");
-        }
-
-        Button bidBtn = new Button("Đặt giá");
-        bidBtn.getStyleClass().add("btn-primary");
-        bidBtn.setMaxWidth(Double.MAX_VALUE);
-        bidBtn.setOnAction(e -> handleBidAction(auction, priceLabel));
-
-        card.getChildren().addAll(nameLabel, priceLabel, detailLabel, bidBtn);
-        itemContainer.getChildren().add(card);
-    }
-
-    private void handleBidAction(Auction auction, Label priceLabel) {
-        Item item = auction.getItem();
-
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Đấu giá");
-        dialog.setHeaderText("Sản phẩm: " + item.getName());
-        dialog.setContentText("Nhập giá đấu (USD):");
-
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(bidAmountStr -> {
-            try {
-                double bidAmount = Double.parseDouble(bidAmountStr);
-                if (bidAmount <= auction.getCurrentHighestPrice()) {
-                    showAlert(Alert.AlertType.ERROR, "LỖI", "Giá đặt phải cao hơn hiện tại!");
-                    return;
-                }
-
-                BidTransaction transaction = new BidTransaction(
-                        UUID.randomUUID().toString(),
-                        auction.getId(),
-                        getCurrentUserId(),
-                        bidAmount,
-                        LocalDateTime.now()
-                );
-
-                boolean success = auction.placeBid(transaction);
-
-                if (success) {
-                    priceLabel.setText("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-                    sendBidToServer(transaction);
-                    showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá: " + bidAmount + " USD");
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "LỖI", "Không thể đặt giá cho phiên này!");
-                }
-            } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.WARNING, "CHÚ Ý", "Vui lòng nhập số tiền hợp lệ.");
-            }
-        });
-    }
-
-    private void sendBidToServer(BidTransaction transaction) {
-        String jsonData = gson.toJson(transaction);
-        Message message = new Message("BID", jsonData);
-
-        ClientConnection.getInstance().sendMessage(message);
-    }
-
-    private String getCurrentUserId() {
-        Account currentAccount = Session.getCurrentAccount();
-        return currentAccount == null ? "U_GUEST" : currentAccount.getId();
+    public void handleShowArt(ActionEvent event) {
+        List<Auction> arts = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem() instanceof Art).collect(Collectors.toList());
+        loadAuctionsToUI(arts);
     }
 
     @FXML
-    void handleLogout(ActionEvent event) {
-        Session.clear();
+    public void handleShowElectronics(ActionEvent event) {
+        List<Auction> elecs = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem() instanceof Electronics).collect(Collectors.toList());
+        loadAuctionsToUI(elecs);
+    }
+
+    private void loadAuctionsToUI(List<Auction> auctions) {
+        itemContainer.getChildren().clear(); 
+
+        for (Auction auction : auctions) {
+            VBox card = new VBox(10);
+            card.setPadding(new Insets(15));
+            card.setStyle("-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+            card.setPrefWidth(250);
+
+            Label nameLbl = new Label(auction.getItem().getName());
+            nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+
+            Label priceLbl = new Label("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
+            priceLbl.setStyle("-fx-text-fill: #d97706; -fx-font-weight: bold;");
+
+            Button bidBtn = new Button("Đặt giá ngay");
+            bidBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-background-radius: 5;");
+            bidBtn.setMaxWidth(Double.MAX_VALUE);
+            bidBtn.setOnAction(e -> handleBid(auction));
+
+            Button historyBtn = new Button("Xem lịch sử đặt giá");
+            historyBtn.setStyle("-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 5;");
+            historyBtn.setMaxWidth(Double.MAX_VALUE);
+            historyBtn.setOnAction(e -> showBidHistory(auction));
+
+            card.getChildren().addAll(nameLbl, priceLbl, bidBtn, historyBtn);
+            itemContainer.getChildren().add(card);
+        }
+    }
+
+    private void handleBid(Auction auction) {
+        double newPrice = auction.getCurrentHighestPrice() + 50.0;
+        boolean success = AppDatabase.getInstance().placeBid(auction.getId(), "user_hien_tai", newPrice);
+        
+        if (success) {
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi yêu cầu đặt giá " + newPrice + " USD!");
+            handleShowAll(null); 
+        }
+    }
+
+    private void showBidHistory(Auction auction) {
+        List<String> history = AppDatabase.getInstance().getBidHistory(auction.getId());
+        String content = history.isEmpty() ? "Chưa có ai đặt giá." : String.join("\n", history);
+        showAlert(Alert.AlertType.INFORMATION, "Lịch sử đấu giá: " + auction.getItem().getName(), content);
+    }
+
+    @FXML
+    public void handleOpenAddProduct(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Login.fxml"));
-            Scene scene = new Scene(loader.load());
-            Stage stage = (Stage) itemContainer.getScene().getWindow();
-            stage.setScene(scene);
-        } catch (Exception e) {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/AddProduct.fxml"));
+            Stage stage = new Stage();
+            stage.setTitle("Thêm Sản Phẩm Mới");
+            stage.setScene(new Scene(loader.load()));
+            stage.showAndWait(); 
+            handleShowAll(null); 
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+
+    @FXML
+    public void handleLogout(ActionEvent event) {
+        try {
+     
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
+            Parent root = loader.load();
+
+       
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+
+
+            stage.setScene(new Scene(root));
+            stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
+            stage.show();
+   
+        } catch (IOException e) {
             e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể quay lại màn hình đăng nhập!");
         }
     }
+
+    @FXML
+    public void login(ActionEvent event) {
+        try {
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
+            Parent root = loader.load();
+
+
+            Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
+
+            stage.setScene(new Scene(root));
+            stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng nhập!");
+        }
+    }
+
+    @FXML
+    public void signUp(ActionEvent event) {
+        try {
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+
+            Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
+     
+            stage.setScene(new Scene(root));
+            stage.setTitle("Hệ thống Đấu giá - Đăng ký tài khoản");
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng ký!");
+        }
+    }
+
+    
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);

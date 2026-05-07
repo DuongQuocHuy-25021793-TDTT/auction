@@ -1,5 +1,7 @@
 package app.controller;
 
+import java.util.UUID;
+
 import app.database.AppDatabase;
 import app.model.Account;
 import app.model.AccountRole;
@@ -12,8 +14,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import java.util.UUID;
 
 public class SignupController {
 
@@ -87,7 +87,7 @@ public class SignupController {
 
     private void goBackToLogin() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Login.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) fullNameField.getScene().getWindow();

@@ -23,10 +23,14 @@
                   <Insets bottom="30.0" left="20.0" top="30.0" />
                </VBox.margin>
             </Label>
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="🏠 Trang chủ" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="🎨 Nghệ thuật (Art)" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="💻 Điện tử (Electronics)" />
+            
+            <Button mnemonicParsing="false" onAction="#handleShowAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="🏠 Trang chủ" />
+            <Button mnemonicParsing="false" onAction="#handleShowArt" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="🎨 Nghệ thuật (Art)" />
+            <Button mnemonicParsing="false" onAction="#handleShowElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="💻 Điện tử (Electronics)" />
             <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="📜 Lịch sử đấu" />
+            
+            <Button mnemonicParsing="false" onAction="#handleOpenAddProduct" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="➕ Thêm sản phẩm" />
+            
             <VBox VBox.vgrow="ALWAYS" />
             <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="🚪 Đăng xuất" />
          </children>
@@ -57,8 +61,8 @@
                      </HBox.margin>
                   </Label>
 
-                  <Button fx:id="loginButton" onAction="#login" mnemonicParsing="false" prefHeight="35.0" prefWidth="100.0" styleClass="btn-outline" text="Đăng nhập" />
-                  <Button fx:id="signUpButton" onAction="#signUp" mnemonicParsing="false" prefHeight="35.0" prefWidth="90.0" styleClass="btn-primary" text="Đăng ký" />
+                  <Button fx:id="loginButton" mnemonicParsing="false" onAction="#login" prefHeight="35.0" prefWidth="100.0" styleClass="btn-outline" text="Đăng nhập" />
+                  <Button fx:id="signUpButton" mnemonicParsing="false" onAction="#signUp" prefHeight="35.0" prefWidth="90.0" styleClass="btn-primary" text="Đăng ký" />
                </children>
                <VBox.margin>
                   <Insets left="20.0" right="20.0" />

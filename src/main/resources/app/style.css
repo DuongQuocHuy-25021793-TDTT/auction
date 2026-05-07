@@ -57,17 +57,15 @@
     -fx-padding: 15;
 }
 
-/* Style cho nút Đăng nhập dạng viền (Outline) */
 .btn-outline {
     -fx-background-color: transparent;
-    -fx-border-color: #27ae60;      /* Cùng màu xanh lá với theme của bạn */
+    -fx-border-color: #27ae60;     
     -fx-border-width: 2px;
     -fx-border-radius: 5px;
-    -fx-text-fill: #27ae60;         /* Chữ màu xanh */
-    -fx-font-weight: bold;
+    -fx-text-fill: #27ae60;         
     -fx-cursor: hand;
 }
 
 .btn-outline:hover {
-    -fx-background-color: #e8f8f5;  /* Khi hover sẽ hiện nền xanh siêu nhạt */
+    -fx-background-color: #e8f8f5;  
 }
