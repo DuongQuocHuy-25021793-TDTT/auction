@@ -11,7 +11,10 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1000.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.MainController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="700.0" prefWidth="1000.0" stylesheets="@style.css"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="app.controller.MainController">
    <left>
       <VBox prefWidth="220.0" styleClass="sidebar" BorderPane.alignment="CENTER">
          <children>
@@ -23,20 +26,21 @@
                   <Insets bottom="30.0" left="20.0" top="30.0" />
                </VBox.margin>
             </Label>
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="🏠 Trang chủ" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="🎨 Nghệ thuật (Art)" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="💻 Điện tử (Electronics)" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="📜 Lịch sử đấu" />
+            <Button fx:id="btnAll" mnemonicParsing="false" onAction="#filterAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="Trang chủ" />
+            <Button fx:id="btnArt" mnemonicParsing="false" onAction="#filterArt" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Nghệ thuật (Art)" />
+            <Button fx:id="btnElec" mnemonicParsing="false" onAction="#filterElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Điện tử (Electronics)" />
+            <Button fx:id="btnVeh" mnemonicParsing="false" onAction="#filterVehicle" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Phương tiện (Vehicle)" />
+            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Lịch sử đấu" />
             <VBox VBox.vgrow="ALWAYS" />
-            <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="🚪 Đăng xuất" />
+            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="Đăng xuất" />
          </children>
       </VBox>
    </left>
-   
+
    <center>
       <VBox prefHeight="200.0" prefWidth="100.0" styleClass="main-content" BorderPane.alignment="CENTER">
          <children>
-            <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="780.0" spacing="15.0">
+            <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="780.0" spacing="12.0">
                <children>
                   <Label text="Sản phẩm đang đấu giá">
                      <font>
@@ -44,19 +48,11 @@
                      </font>
                   </Label>
                   <HBox HBox.hgrow="ALWAYS" />
-                  
-                  <TextField prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
-                  <Button mnemonicParsing="false" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
-                  
-                  <Label text="|" textFill="#bdc3c7">
-                     <font>
-                        <Font size="22.0" />
-                     </font>
-                     <HBox.margin>
-                        <Insets left="5.0" right="5.0" />
-                     </HBox.margin>
-                  </Label>
 
+                  <TextField prefHeight="35.0" prefWidth="165.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
+                  <Button mnemonicParsing="false" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
+                  <Button fx:id="createAuctionButton" mnemonicParsing="false" onAction="#handleCreateAuction" prefHeight="35.0" styleClass="btn-primary" text="Tạo phiên" />
+                  <Button fx:id="requestProductButton" mnemonicParsing="false" onAction="#handleRequestProduct" prefHeight="35.0" styleClass="btn-outline" text="Yêu cầu SP" />
                   <Button fx:id="loginButton" onAction="#login" mnemonicParsing="false" prefHeight="35.0" prefWidth="100.0" styleClass="btn-outline" text="Đăng nhập" />
                   <Button fx:id="signUpButton" onAction="#signUp" mnemonicParsing="false" prefHeight="35.0" prefWidth="90.0" styleClass="btn-primary" text="Đăng ký" />
                </children>
@@ -64,7 +60,7 @@
                   <Insets left="20.0" right="20.0" />
                </VBox.margin>
             </HBox>
-            
+
             <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                <content>
                   <FlowPane fx:id="itemContainer" hgap="20.0" prefWrapLength="750.0" vgap="20.0">

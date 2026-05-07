@@ -69,7 +69,9 @@ public class ClientHandler implements Runnable {
 
         boolean success = auction.placeBid(bid);
         if (success) {
-            System.out.println("Server đã cập nhật giá mới: " + auction.getCurrentHighestPrice());
+            AppDatabase.getInstance().updateAuctionPrice(auction.getId(), auction.getCurrentHighestPrice(), auction.getHighestBidderId());
+            AppDatabase.getInstance().saveBidTransaction(bid);
+            System.out.println("Server đã cập nhật giá mới và lưu vào CSDL: " + auction.getCurrentHighestPrice());
         } else {
             System.out.println("Server từ chối yêu cầu đặt giá.");
         }

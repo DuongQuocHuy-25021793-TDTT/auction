@@ -1,22 +1,22 @@
 package app.database;
 
-import app.model.Account;
+import app.model.User;
 
 public class Session {
-    private static Account currentAccount;
+    private static User currentUser;
 
     private Session() {
     }
 
-    public static Account getCurrentAccount() {
-        return currentAccount;
+    public static User getCurrentUser() {
+        return currentUser;
     }
 
-    public static void setCurrentAccount(Account account) {
-        currentAccount = account;
+    public static void setCurrentUser(User user) {
+        currentUser = user;
     }
 
     public static void clear() {
-        currentAccount = null;
+        currentUser = null;
     }
 }

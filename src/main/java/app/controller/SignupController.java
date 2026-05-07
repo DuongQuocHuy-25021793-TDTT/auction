@@ -1,19 +1,23 @@
 package app.controller;
 
+import java.util.UUID;
+
 import app.database.AppDatabase;
-import app.model.Account;
 import app.model.AccountRole;
+import app.model.Bidder;
+import app.model.Seller;
+import app.model.User;
 import javafx.animation.PauseTransition;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import java.util.UUID;
 
 public class SignupController {
 
@@ -30,7 +34,16 @@ public class SignupController {
     private PasswordField confirmPasswordField;
 
     @FXML
+    private ComboBox<AccountRole> roleComboBox;
+
+    @FXML
     private Label errorLabel;
+
+    @FXML
+    public void initialize() {
+        roleComboBox.setItems(FXCollections.observableArrayList(AccountRole.BIDDER, AccountRole.SELLER));
+        roleComboBox.setValue(AccountRole.BIDDER);
+    }
 
     @FXML
     public void handleRegisterAction() {
@@ -38,9 +51,15 @@ public class SignupController {
         String email = emailField.getText().trim();
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
+        AccountRole selectedRole = roleComboBox.getValue();
 
         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showMessage("Vui lòng nhập đầy đủ thông tin!", "red");
+            return;
+        }
+
+        if (selectedRole == null || !selectedRole.canSelfRegister()) {
+            showMessage("Chỉ được đăng ký tài khoản Bidder hoặc Seller!", "red");
             return;
         }
 
@@ -55,14 +74,8 @@ public class SignupController {
             return;
         }
 
-        Account account = new Account(
-                "U_" + UUID.randomUUID(),
-                email,
-                password,
-                AccountRole.GUEST
-        );
-
-        if (!database.addAccount(account)) {
+        User user = createUser(selectedRole, email, password);
+        if (!database.addUser(user)) {
             showMessage("Không thể tạo tài khoản!", "red");
             return;
         }
@@ -79,6 +92,14 @@ public class SignupController {
         goBackToLogin();
     }
 
+    private User createUser(AccountRole role, String username, String password) {
+        String id = "U_" + UUID.randomUUID();
+        if (role == AccountRole.SELLER) {
+            return new Seller(id, username, password);
+        }
+        return new Bidder(id, username, password);
+    }
+
     private void showMessage(String message, String color) {
         errorLabel.setText(message);
         errorLabel.setStyle("-fx-text-fill: " + color + ";");
@@ -87,7 +108,7 @@ public class SignupController {
 
     private void goBackToLogin() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Login.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) fullNameField.getScene().getWindow();

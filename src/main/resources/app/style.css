@@ -71,3 +71,19 @@
 .btn-outline:hover {
     -fx-background-color: #e8f8f5;  /* Khi hover sẽ hiện nền xanh siêu nhạt */
 }
+
+/* Custom CheckBox */
+.custom-checkbox .box {
+    -fx-background-color: transparent;
+    -fx-border-color: #BDC3C7;
+    -fx-border-radius: 3px;
+}
+
+.custom-checkbox:selected .box {
+    -fx-background-color: #27AE60;
+    -fx-border-color: #27AE60;
+}
+
+.custom-checkbox:selected .mark {
+    -fx-background-color: white;
+}

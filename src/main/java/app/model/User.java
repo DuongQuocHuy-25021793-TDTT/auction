@@ -1,10 +1,10 @@
 package app.model;
 
-public abstract class User extends Entity{
+public abstract class User extends Entity {
     protected String username;
     protected String password;
 
-    public User(String id , String username, String password){
+    public User(String id, String username, String password) {
         super(id);
         this.username = username;
         this.password = password;
@@ -24,7 +24,7 @@ public abstract class User extends Entity{
 
     public void setPassword(String password) {
         this.password = password;
-    }       
-    
+    }
 
+    public abstract AccountRole getRole();
 }

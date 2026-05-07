@@ -91,6 +91,10 @@ public class Auction extends Entity {
         this.status = status;
     }
 
+    public void setHighestBidderId(String highestBidderId) {
+        this.highestBidderId = highestBidderId;
+    }
+
     public boolean placeBid(BidTransaction bid) {
         if(LocalDateTime.now().isBefore(startTime)) {
             System.out.println("Phiên đấu giá chưa bắt đầu!");
