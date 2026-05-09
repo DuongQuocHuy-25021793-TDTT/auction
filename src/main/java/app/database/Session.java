@@ -3,10 +3,8 @@ package app.database;
 import app.model.Account;
 
 public class Session {
-    private static Account currentAccount;
-
-    private Session() {
-    }
+   
+    private static Account currentAccount = null;
 
     public static Account getCurrentAccount() {
         return currentAccount;
@@ -15,8 +13,9 @@ public class Session {
     public static void setCurrentAccount(Account account) {
         currentAccount = account;
     }
-
-    public static void clear() {
-        currentAccount = null;
+    
+    
+    public static boolean isLoggedIn() {
+        return currentAccount != null;
     }
 }
