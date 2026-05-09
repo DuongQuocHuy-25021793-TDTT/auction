@@ -6,20 +6,34 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<VBox spacing="15.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.AddProductController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-    </padding>
-
-    <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Thêm Sản Phẩm Đấu Giá" />
-    
-    <ComboBox fx:id="comboType" prefWidth="300.0" />
-    <TextField fx:id="txtName" promptText="Tên sản phẩm" />
-    <TextField fx:id="txtDesc" promptText="Mô tả ngắn gọn" />
-    <TextField fx:id="txtPrice" promptText="Giá khởi điểm (USD)" />
-    <TextField fx:id="txtExtra1" promptText="Thông tin phụ 1" />
-    <TextField fx:id="txtExtra2" promptText="Thông tin phụ 2" />
-
-    <Button onAction="#handleSave" prefWidth="300.0" style="-fx-background-color: #0ea5e9; -fx-text-fill: white; -fx-font-weight: bold;" text="Lưu Sản Phẩm" />
+<VBox prefHeight="450.0" prefWidth="400.0" spacing="15.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.AddProductController">
+   <padding>
+      <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
+   </padding>
+   <children>
+      <Label text="Thêm Sản Phẩm Mới" textFill="#2c3e50">
+         <font>
+            <Font name="System Bold" size="24.0" />
+         </font>
+         <VBox.margin>
+            <Insets bottom="10.0" />
+         </VBox.margin>
+      </Label>
+      
+      <Label text="Loại sản phẩm:" />
+      <ComboBox fx:id="comboType" prefHeight="35.0" prefWidth="350.0" />
+      
+      <TextField fx:id="txtName" prefHeight="35.0" promptText="Tên sản phẩm (VD: Tranh sơn dầu)" />
+      <TextField fx:id="txtDesc" prefHeight="35.0" promptText="Mô tả ngắn gọn" />
+      <TextField fx:id="txtPrice" prefHeight="35.0" promptText="Giá khởi điểm (USD)" />
+      
+      <TextField fx:id="txtExtra1" prefHeight="35.0" promptText="Thông tin phụ 1" />
+      <TextField fx:id="txtExtra2" prefHeight="35.0" promptText="Thông tin phụ 2" />
+      
+      <VBox VBox.vgrow="ALWAYS" />
+      
+      <Button mnemonicParsing="false" onAction="#handleSave" prefHeight="40.0" prefWidth="350.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" text="Lưu Sản Phẩm" />
+   </children>
 </VBox>
