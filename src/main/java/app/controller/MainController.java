@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import app.database.AppDatabase;
-import app.database.Session; // Đã thêm import Session
+import app.database.Session;
 import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
@@ -19,6 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField; 
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -28,28 +29,48 @@ public class MainController {
     @FXML
     private FlowPane itemContainer;
 
-
     @FXML private Button loginButton;
     @FXML private Button signUpButton;
     @FXML private Button btnAddProduct; 
     @FXML private Button btnLogout;     
+   
+    @FXML 
+    private TextField searchField;
 
     @FXML
     public void initialize() {
         handleShowAll(null); 
-    
+        
         if (Session.isLoggedIn()) {
-          
             if (loginButton != null) { loginButton.setVisible(false); loginButton.setManaged(false); }
             if (signUpButton != null) { signUpButton.setVisible(false); signUpButton.setManaged(false); }
             if (btnAddProduct != null) { btnAddProduct.setVisible(true); btnAddProduct.setManaged(true); }
             if (btnLogout != null) { btnLogout.setVisible(true); btnLogout.setManaged(true); }
         } else {
-            
             if (loginButton != null) { loginButton.setVisible(true); loginButton.setManaged(true); }
             if (signUpButton != null) { signUpButton.setVisible(true); signUpButton.setManaged(true); }
             if (btnAddProduct != null) { btnAddProduct.setVisible(false); btnAddProduct.setManaged(false); }
             if (btnLogout != null) { btnLogout.setVisible(false); btnLogout.setManaged(false); }
+        }
+    }
+
+    @FXML
+    public void handleSearch(ActionEvent event) {
+        String keyword = searchField.getText().trim().toLowerCase();
+
+        if (keyword.isEmpty()) {
+            handleShowAll(null);
+            return;
+        }
+
+        List<Auction> searchResults = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem().getName().toLowerCase().contains(keyword))
+                .collect(Collectors.toList());
+
+        loadAuctionsToUI(searchResults);
+        
+        if (searchResults.isEmpty()) {
+            showAlert(Alert.AlertType.INFORMATION, "Kết quả tìm kiếm", "Không tìm thấy sản phẩm nào khớp với: " + keyword);
         }
     }
 
@@ -103,12 +124,11 @@ public class MainController {
     }
 
     private void handleBid(Auction auction) {
- 
         if (!Session.isLoggedIn()) {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
             return;
         }
-       
+        
         String currentUsername = Session.getCurrentAccount().getUsername();
         
         double newPrice = auction.getCurrentHighestPrice() + 50.0;
@@ -117,6 +137,7 @@ public class MainController {
         if (success) {
             showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi yêu cầu đặt giá " + newPrice + " USD!");
             handleShowAll(null); 
+           
         }
     }
 
@@ -141,7 +162,6 @@ public class MainController {
     @FXML
     public void handleLogout(ActionEvent event) {
         try {
-         
             Session.setCurrentAccount(null);
      
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
