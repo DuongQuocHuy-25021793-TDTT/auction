@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import app.database.AppDatabase;
+import app.database.Session; // Đã thêm import Session
 import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
@@ -27,11 +28,30 @@ public class MainController {
     @FXML
     private FlowPane itemContainer;
 
+
+    @FXML private Button loginButton;
+    @FXML private Button signUpButton;
+    @FXML private Button btnAddProduct; 
+    @FXML private Button btnLogout;     
+
     @FXML
     public void initialize() {
         handleShowAll(null); 
+    
+        if (Session.isLoggedIn()) {
+            // Đã đăng nhập: Ẩn Đăng nhập/Đăng ký, Hiện Thêm SP/Đăng xuất
+            if (loginButton != null) { loginButton.setVisible(false); loginButton.setManaged(false); }
+            if (signUpButton != null) { signUpButton.setVisible(false); signUpButton.setManaged(false); }
+            if (btnAddProduct != null) { btnAddProduct.setVisible(true); btnAddProduct.setManaged(true); }
+            if (btnLogout != null) { btnLogout.setVisible(true); btnLogout.setManaged(true); }
+        } else {
+            
+            if (loginButton != null) { loginButton.setVisible(true); loginButton.setManaged(true); }
+            if (signUpButton != null) { signUpButton.setVisible(true); signUpButton.setManaged(true); }
+            if (btnAddProduct != null) { btnAddProduct.setVisible(false); btnAddProduct.setManaged(false); }
+            if (btnLogout != null) { btnLogout.setVisible(false); btnLogout.setManaged(false); }
+        }
     }
-
 
     @FXML
     public void handleShowAll(ActionEvent event) {
@@ -83,8 +103,16 @@ public class MainController {
     }
 
     private void handleBid(Auction auction) {
+ 
+        if (!Session.isLoggedIn()) {
+            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
+            return;
+        }
+       
+        String currentUsername = Session.getCurrentAccount().getUsername();
+        
         double newPrice = auction.getCurrentHighestPrice() + 50.0;
-        boolean success = AppDatabase.getInstance().placeBid(auction.getId(), "user_hien_tai", newPrice);
+        boolean success = AppDatabase.getInstance().placeBid(auction.getId(), currentUsername, newPrice);
         
         if (success) {
             showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi yêu cầu đặt giá " + newPrice + " USD!");
@@ -110,17 +138,16 @@ public class MainController {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-
     @FXML
     public void handleLogout(ActionEvent event) {
         try {
+         
+            Session.setCurrentAccount(null);
      
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
-
        
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
 
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
@@ -135,13 +162,10 @@ public class MainController {
     @FXML
     public void login(ActionEvent event) {
         try {
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
 
-
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
 
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
@@ -156,13 +180,10 @@ public class MainController {
     @FXML
     public void signUp(ActionEvent event) {
         try {
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
             javafx.scene.Parent root = loader.load();
 
-
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
      
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng ký tài khoản");
@@ -173,8 +194,6 @@ public class MainController {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng ký!");
         }
     }
-
-    
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
