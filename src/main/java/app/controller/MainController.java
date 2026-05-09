@@ -123,21 +123,56 @@ public class MainController {
         }
     }
 
+
     private void handleBid(Auction auction) {
-        if (!Session.isLoggedIn()) {
-            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
+        // Kiểm tra xem người dùng đã đăng nhập chưa
+        if (!app.database.Session.isLoggedIn()) {
+            showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
             return;
         }
-        
-        String currentUsername = Session.getCurrentAccount().getUsername();
-        
+
+       
+        String currentUsername = app.database.Session.getCurrentAccount().getUsername();
         double newPrice = auction.getCurrentHighestPrice() + 50.0;
-        boolean success = AppDatabase.getInstance().placeBid(auction.getId(), currentUsername, newPrice);
+
+
+        app.model.BidTransaction bid = new app.model.BidTransaction(
+                java.util.UUID.randomUUID().toString(), 
+                auction.getId(), 
+                currentUsername, 
+                newPrice, 
+                java.time.LocalDateTime.now()
+        );
+       
+        com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
+                .registerTypeAdapter(java.time.LocalDateTime.class, new com.google.gson.TypeAdapter<java.time.LocalDateTime>() {
+                    @Override
+                    public void write(com.google.gson.stream.JsonWriter out, java.time.LocalDateTime value) throws java.io.IOException {
+                        out.value(value != null ? value.toString() : null);
+                    }
+
+                    @Override
+                    public java.time.LocalDateTime read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
+                        return java.time.LocalDateTime.parse(in.nextString());
+                    }
+                }).create();
+
         
-        if (success) {
-            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã gửi yêu cầu đặt giá " + newPrice + " USD!");
+        String bidJson = gson.toJson(bid);
+        app.model.Message message = new app.model.Message("BID", bidJson); 
+        String finalJsonToSend = gson.toJson(message); 
+
+       
+        String response = app.network.NetworkClient.sendRequest(finalJsonToSend);
+
+        
+        if ("SUCCESS".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + auction.getItem().getName());
             handleShowAll(null); 
-           
+        } else if ("FAIL".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá (Giá không hợp lệ hoặc lỗi hệ thống)!");
+        } else {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server Đấu Giá. Hãy kiểm tra xem Server đã chạy chưa!");
         }
     }
 
@@ -239,7 +274,7 @@ public class MainController {
         for (Auction a : allAuctions) {
             List<String> bids = AppDatabase.getInstance().getBidHistory(a.getId());
             for (String bid : bids) {
-                // Nếu dòng lịch sử có chứa tên của user hiện tại
+             
                 if (bid.contains(currentUser)) {
                     historyText.append("Sản phẩm '").append(a.getItem().getName()).append("': ").append(bid).append("\n");
                 }
