@@ -39,7 +39,7 @@ public class MainController {
         handleShowAll(null); 
     
         if (Session.isLoggedIn()) {
-            // Đã đăng nhập: Ẩn Đăng nhập/Đăng ký, Hiện Thêm SP/Đăng xuất
+          
             if (loginButton != null) { loginButton.setVisible(false); loginButton.setManaged(false); }
             if (signUpButton != null) { signUpButton.setVisible(false); signUpButton.setManaged(false); }
             if (btnAddProduct != null) { btnAddProduct.setVisible(true); btnAddProduct.setManaged(true); }
