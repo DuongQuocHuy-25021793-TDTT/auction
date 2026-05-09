@@ -26,22 +26,24 @@ public class AddProductController {
 
     @FXML
     public void initialize() {
+       
         comboType.getItems().addAll("Nghệ thuật", "Điện tử");
         comboType.getSelectionModel().selectFirst();
         
-       
-        comboType.setOnAction(e -> {
-            if ("Nghệ thuật".equals(comboType.getValue())) {
-                txtExtra1.setPromptText("Tên họa sĩ / Nghệ nhân");
-                txtExtra2.setVisible(true);
-                txtExtra2.setPromptText("Năm sáng tác (VD: 2023)");
-            } else {
-                txtExtra1.setPromptText("Số tháng bảo hành (VD: 12)");
-                txtExtra2.setVisible(false);
-            }
-        });
         
-        comboType.fireEvent(new ActionEvent());
+        comboType.setOnAction(e -> updateFields());
+        updateFields(); 
+    }
+
+    private void updateFields() {
+        if ("Nghệ thuật".equals(comboType.getValue())) {
+            txtExtra1.setPromptText("Tên họa sĩ / Nghệ nhân");
+            txtExtra2.setVisible(true);
+            txtExtra2.setPromptText("Năm sáng tác (VD: 2023)");
+        } else {
+            txtExtra1.setPromptText("Số tháng bảo hành (VD: 12)");
+            txtExtra2.setVisible(false); 
+        }
     }
 
     @FXML
@@ -50,29 +52,53 @@ public class AddProductController {
             String type = comboType.getValue();
             String name = txtName.getText();
             String desc = txtDesc.getText();
-            double price = Double.parseDouble(txtPrice.getText());
+            
+            if (name.isEmpty() || txtPrice.getText().isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng nhập tên và giá sản phẩm!");
+                return;
+            }
 
+            double price = Double.parseDouble(txtPrice.getText());
             Item newItem;
-            String itemId = "I_" + UUID.randomUUID().toString().substring(0, 8);
+            
+ 
+            String itemId = "I_" + UUID.randomUUID().toString().substring(0, 5);
 
             if ("Nghệ thuật".equals(type)) {
                 String artist = txtExtra1.getText();
-                int year = Integer.parseInt(txtExtra2.getText());
+                int year = Integer.parseInt(txtExtra2.getText().isEmpty() ? "0" : txtExtra2.getText());
                 newItem = new Art(itemId, name, desc, price, artist, year);
             } else {
-                int warranty = Integer.parseInt(txtExtra1.getText());
+                int warranty = Integer.parseInt(txtExtra1.getText().isEmpty() ? "0" : txtExtra1.getText());
                 newItem = new Electronics(itemId, name, desc, price, warranty);
             }
 
-            Auction newAuction = new Auction("A_" + UUID.randomUUID().toString().substring(0, 8), newItem, LocalDateTime.now(), LocalDateTime.now().plusDays(1), price, "RUNNING");
+           
+            String auctionId = "A_" + UUID.randomUUID().toString().substring(0, 5);
+            Auction newAuction = new Auction(auctionId, newItem, 
+                    LocalDateTime.now(), LocalDateTime.now().plusDays(1), price, "RUNNING");
 
-            if (AppDatabase.getInstance().addAuction(newAuction)) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Đã thêm thành công!");
-                alert.showAndWait();
-                ((Stage) txtName.getScene().getWindow()).close(); 
+            boolean success = AppDatabase.getInstance().addAuction(newAuction);
+
+            if (success) {
+                showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã đưa sản phẩm lên sàn đấu giá!");
+               
+                Stage stage = (Stage) txtName.getScene().getWindow();
+                stage.close();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể lưu vào CSDL.");
             }
-        } catch (Exception e) {
-            new Alert(Alert.AlertType.ERROR, "Vui lòng nhập đúng định dạng số!").showAndWait();
+
+        } catch (NumberFormatException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi nhập liệu", "Giá tiền, Năm sáng tác hoặc Bảo hành phải là SỐ!");
         }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }
