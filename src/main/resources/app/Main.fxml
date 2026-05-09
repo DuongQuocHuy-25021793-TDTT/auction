@@ -29,10 +29,10 @@
             <Button mnemonicParsing="false" onAction="#handleShowElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="💻 Điện tử (Electronics)" />
             <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="📜 Lịch sử đấu" />
             
-            <Button mnemonicParsing="false" onAction="#handleOpenAddProduct" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="➕ Thêm sản phẩm" />
+            <Button fx:id="btnAddProduct" mnemonicParsing="false" onAction="#handleOpenAddProduct" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="➕ Thêm sản phẩm" />
             
             <VBox VBox.vgrow="ALWAYS" />
-            <Button mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="🚪 Đăng xuất" />
+            <Button fx:id="btnLogout" mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="🚪 Đăng xuất" />
          </children>
       </VBox>
    </left>
@@ -49,8 +49,8 @@
                   </Label>
                   <HBox HBox.hgrow="ALWAYS" />
                   
-                  <TextField prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
-                  <Button mnemonicParsing="false" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
+                  <TextField fx:id="searchField" prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
+                  <Button mnemonicParsing="false" onAction="#handleSearch" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
                   
                   <Label text="|" textFill="#bdc3c7">
                      <font>
