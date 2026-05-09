@@ -27,7 +27,7 @@
             <Button mnemonicParsing="false" onAction="#handleShowAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="🏠 Trang chủ" />
             <Button mnemonicParsing="false" onAction="#handleShowArt" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="🎨 Nghệ thuật (Art)" />
             <Button mnemonicParsing="false" onAction="#handleShowElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="💻 Điện tử (Electronics)" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="📜 Lịch sử đấu" />
+            <Button mnemonicParsing="false" onAction="#handleShowHistory" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="📜 Lịch sử đấu" />
             
             <Button fx:id="btnAddProduct" mnemonicParsing="false" onAction="#handleOpenAddProduct" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="➕ Thêm sản phẩm" />
             

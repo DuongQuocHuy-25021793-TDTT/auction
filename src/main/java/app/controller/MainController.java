@@ -222,4 +222,35 @@ public class MainController {
         alert.setContentText(content);
         alert.showAndWait();
     }
+   
+    @FXML
+    public void handleShowHistory(ActionEvent event) {
+        // Kiểm tra đăng nhập
+        if (!Session.isLoggedIn()) {
+            showAlert(Alert.AlertType.WARNING, "Yêu cầu đăng nhập", "Bạn cần đăng nhập để xem lịch sử đấu giá của mình!");
+            return;
+        }
+
+        String currentUser = Session.getCurrentAccount().getUsername();
+        StringBuilder historyText = new StringBuilder();
+
+      
+        List<Auction> allAuctions = AppDatabase.getInstance().getAuctions();
+        for (Auction a : allAuctions) {
+            List<String> bids = AppDatabase.getInstance().getBidHistory(a.getId());
+            for (String bid : bids) {
+                // Nếu dòng lịch sử có chứa tên của user hiện tại
+                if (bid.contains(currentUser)) {
+                    historyText.append("Sản phẩm '").append(a.getItem().getName()).append("': ").append(bid).append("\n");
+                }
+            }
+        }
+
+    
+        if (historyText.length() == 0) {
+            showAlert(Alert.AlertType.INFORMATION, "Lịch sử của bạn", "Bạn chưa tham gia đấu giá sản phẩm nào.");
+        } else {
+            showAlert(Alert.AlertType.INFORMATION, "Lịch sử đấu giá của: " + currentUser, historyText.toString());
+        }
+    }
 }
