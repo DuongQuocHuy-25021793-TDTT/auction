@@ -2,6 +2,7 @@ package app.server;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.PrintWriter; 
 import java.net.Socket;
 import java.time.LocalDateTime;
 
@@ -35,7 +36,12 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
+            
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            
+          
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            
             String inputLine;
 
             while ((inputLine = in.readLine()) != null) {
@@ -43,7 +49,8 @@ public class ClientHandler implements Runnable {
 
                 Message message = gson.fromJson(inputLine, Message.class);
                 if ("BID".equals(message.getAction())) {
-                    handleBidMessage(message);
+                   
+                    handleBidMessage(message, out); 
                 }
             }
         } catch (Exception e) {
@@ -52,7 +59,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleBidMessage(Message message) {
+
+    private void handleBidMessage(Message message, PrintWriter out) {
         BidTransaction bid = gson.fromJson(message.getData(), BidTransaction.class);
 
         System.out.println("=== THÔNG TIN ĐẤU GIÁ ===");
@@ -64,14 +72,20 @@ public class ClientHandler implements Runnable {
         Auction auction = AppDatabase.getInstance().findAuctionById(bid.getAuctionId());
         if (auction == null) {
             System.out.println("Không tìm thấy phiên đấu giá: " + bid.getAuctionId());
+          
+            out.println("ERROR"); 
             return;
         }
 
         boolean success = auction.placeBid(bid);
         if (success) {
             System.out.println("Server đã cập nhật giá mới: " + auction.getCurrentHighestPrice());
+            
+            out.println("SUCCESS"); 
         } else {
             System.out.println("Server từ chối yêu cầu đặt giá.");
+            
+            out.println("FAIL"); 
         }
     }
 }
