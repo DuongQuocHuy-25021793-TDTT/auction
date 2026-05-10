@@ -51,7 +51,12 @@ public class ClientHandler implements Runnable {
                 if ("BID".equals(message.getAction())) {
                    
                     handleBidMessage(message, out); 
+                } 
+               
+                else if ("GET_HISTORY".equals(message.getAction())) {
+                    handleGetHistory(message, out);
                 }
+  
             }
         } catch (Exception e) {
             System.out.println("[-] Một client đã ngắt kết nối.");
@@ -88,4 +93,16 @@ public class ClientHandler implements Runnable {
             out.println("FAIL"); 
         }
     }
+
+
+    private void handleGetHistory(Message message, PrintWriter out) {
+        // 1. Lấy ID món đồ từ gói tin Message
+        String auctionId = message.getData(); 
+        
+    
+        java.util.List<String> history = AppDatabase.getInstance().getBidHistory(auctionId);
+      
+        out.println(gson.toJson(history)); 
+    }
+
 }
