@@ -116,7 +116,7 @@ public class MainController {
             Button historyBtn = new Button("Xem lịch sử đặt giá");
             historyBtn.setStyle("-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 5;");
             historyBtn.setMaxWidth(Double.MAX_VALUE);
-            historyBtn.setOnAction(e -> showBidHistory(auction));
+            historyBtn.setOnAction(e -> handleViewHistory(auction));
 
             card.getChildren().addAll(nameLbl, priceLbl, bidBtn, historyBtn);
             itemContainer.getChildren().add(card);
@@ -125,7 +125,7 @@ public class MainController {
 
 
     private void handleBid(Auction auction) {
-        // Kiểm tra xem người dùng đã đăng nhập chưa
+    
         if (!app.database.Session.isLoggedIn()) {
             showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
             return;
@@ -176,10 +176,44 @@ public class MainController {
         }
     }
 
-    private void showBidHistory(Auction auction) {
-        List<String> history = AppDatabase.getInstance().getBidHistory(auction.getId());
-        String content = history.isEmpty() ? "Chưa có ai đặt giá." : String.join("\n", history);
-        showAlert(Alert.AlertType.INFORMATION, "Lịch sử đấu giá: " + auction.getItem().getName(), content);
+    @FXML
+    private void handleViewHistory(app.model.Auction auction) {
+
+        app.model.Message msg = new app.model.Message("GET_HISTORY", auction.getId());
+    
+   
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        String response = app.network.NetworkClient.sendRequest(gson.toJson(msg));
+
+
+        if (response != null && !response.isEmpty() && !response.equals("ERROR")) {
+            try {
+     
+                java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<String>>(){}.getType();
+                java.util.List<String> history = gson.fromJson(response, listType);
+
+          
+            if (history.isEmpty()) {
+                showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", "Chưa có ai đặt giá cho sản phẩm này.");
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("CHI TIẾT CÁC LƯỢT ĐẶT GIÁ:\n");
+                    sb.append("------------------------------------------\n");
+                
+          
+                    for (String line : history) {
+                        sb.append("🔹 ").append(line).append("\n\n");
+                    }
+                
+                    showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", sb.toString());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi", "Không thể đọc dữ liệu lịch sử.");
+            }
+        } else {
+            showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Thông báo", "Không nhận được phản hồi từ Server.");
+        }
     }
 
     @FXML
