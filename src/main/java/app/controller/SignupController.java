@@ -36,7 +36,7 @@ public class SignupController {
     private Label errorLabel;
 
 
-    private final int SERVER_PORT = 8080;
+    private final int SERVER_PORT = 8888;
     private final String SERVER_IP = "localhost";
 
     @FXML
