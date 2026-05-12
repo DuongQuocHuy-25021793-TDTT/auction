@@ -1,8 +1,16 @@
 package app.controller;
 
-import app.database.AppDatabase;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+
+import com.google.gson.Gson;
+
 import app.database.Session;
 import app.model.Account;
+import app.model.AccountRole;
+import app.model.Message;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -23,6 +31,9 @@ public class LoginController {
     @FXML
     private Label statusLabel;
 
+    private final int SERVER_PORT = 8080;
+    private final String SERVER_IP = "localhost";
+
     @FXML
     public void handleLoginButtonAction(ActionEvent event) {
         String username = usernameField.getText().trim();
@@ -34,25 +45,40 @@ public class LoginController {
             return;
         }
 
-        Account account = AppDatabase.getInstance().authenticate(username, password);
-        if (account == null) {
-            statusLabel.setText("Sai email hoặc mật khẩu!");
-            statusLabel.setStyle("-fx-text-fill: red;");
-            return;
-        }
+        
+        try (Socket socket = new Socket(SERVER_IP, SERVER_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-        Session.setCurrentAccount(account);
+         
+            Message msg = new Message("LOGIN", username + ":" + password);
+            Gson gson = new Gson();
+            out.println(gson.toJson(msg));
 
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Main.fxml"));
-            Scene scene = new Scene(loader.load());
+        
+            String response = in.readLine();
 
-            Stage stage = (Stage) usernameField.getScene().getWindow();
-            stage.setScene(scene);
-            stage.setTitle("Auction System - " + account.getRole());
+            if ("SUCCESS".equals(response)) {
+                
+                Account account = new Account("U_Temp", username, password, AccountRole.GUEST);
+                Session.setCurrentAccount(account);
+
+              
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Main.fxml"));
+                Scene scene = new Scene(loader.load());
+
+                Stage stage = (Stage) usernameField.getScene().getWindow();
+                stage.setScene(scene);
+                stage.setTitle("Auction System - Xin chào " + username);
+            } else {
+                statusLabel.setText("Sai tài khoản hoặc mật khẩu!");
+                statusLabel.setStyle("-fx-text-fill: red;");
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            statusLabel.setText("Không mở được màn hình chính!");
+            statusLabel.setText("Không thể kết nối đến Server. Hãy kiểm tra xem Server đã chạy chưa!");
+            statusLabel.setStyle("-fx-text-fill: red;");
         }
     }
 
@@ -68,6 +94,7 @@ public class LoginController {
         } catch (Exception e) {
             e.printStackTrace();
             statusLabel.setText("Không mở được màn hình đăng ký!");
+            statusLabel.setStyle("-fx-text-fill: red;");
         }
     }
 }
