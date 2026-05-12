@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import com.google.gson.Gson;
 
 import app.database.AppDatabase;
+import app.model.Account;
+import app.model.AccountRole;
 import app.model.Auction;
 import app.model.BidTransaction;
 import app.model.Message;
@@ -36,34 +38,34 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            
-          
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            
             String inputLine;
 
             while ((inputLine = in.readLine()) != null) {
                 System.out.println(">>> SERVER NHẬN DỮ LIỆU: " + inputLine);
 
                 Message message = gson.fromJson(inputLine, Message.class);
+                
                 if ("BID".equals(message.getAction())) {
-                   
                     handleBidMessage(message, out); 
                 } 
-               
                 else if ("GET_HISTORY".equals(message.getAction())) {
                     handleGetHistory(message, out);
                 }
-  
+             
+                else if ("LOGIN".equals(message.getAction())) {
+                    handleLogin(message, out);
+                } 
+                else if ("SIGNUP".equals(message.getAction())) {
+                    handleSignup(message, out);
+                }
             }
         } catch (Exception e) {
             System.out.println("[-] Một client đã ngắt kết nối.");
             e.printStackTrace();
         }
     }
-
 
     private void handleBidMessage(Message message, PrintWriter out) {
         BidTransaction bid = gson.fromJson(message.getData(), BidTransaction.class);
@@ -77,7 +79,6 @@ public class ClientHandler implements Runnable {
         Auction auction = AppDatabase.getInstance().findAuctionById(bid.getAuctionId());
         if (auction == null) {
             System.out.println("Không tìm thấy phiên đấu giá: " + bid.getAuctionId());
-          
             out.println("ERROR"); 
             return;
         }
@@ -85,24 +86,69 @@ public class ClientHandler implements Runnable {
         boolean success = auction.placeBid(bid);
         if (success) {
             System.out.println("Server đã cập nhật giá mới: " + auction.getCurrentHighestPrice());
-            
             out.println("SUCCESS"); 
         } else {
             System.out.println("Server từ chối yêu cầu đặt giá.");
-            
             out.println("FAIL"); 
         }
     }
 
-
     private void handleGetHistory(Message message, PrintWriter out) {
-        // 1. Lấy ID món đồ từ gói tin Message
         String auctionId = message.getData(); 
-        
-    
         java.util.List<String> history = AppDatabase.getInstance().getBidHistory(auctionId);
-      
         out.println(gson.toJson(history)); 
     }
 
+
+
+    private void handleLogin(Message message, PrintWriter out) {
+        String[] parts = message.getData().split(":");
+        if (parts.length == 2) {
+            String user = parts[0];
+            String pass = parts[1];
+
+            Account account = AppDatabase.getInstance().authenticate(user, pass);
+            
+            if (account != null) {
+                System.out.println(">>> Đăng nhập thành công: " + user);
+                out.println("SUCCESS");
+            } else {
+                System.out.println(">>> Đăng nhập thất bại: Sai tài khoản/mật khẩu.");
+                out.println("FAIL");
+            }
+        } else {
+            out.println("FAIL");
+        }
+    }
+
+    private void handleSignup(Message message, PrintWriter out) {
+        String[] parts = message.getData().split(":");
+        if (parts.length == 2) {
+            String user = parts[0];
+            String pass = parts[1];
+
+            if (AppDatabase.getInstance().usernameExists(user)) {
+                System.out.println(">>> Đăng ký thất bại: Tài khoản " + user + " đã tồn tại.");
+                out.println("FAIL_EXISTS");
+            } else {
+       
+                Account newAccount = new Account(
+                    "U_" + System.currentTimeMillis(), 
+                    user, 
+                    pass, 
+                    AccountRole.GUEST 
+                );
+                
+                boolean success = AppDatabase.getInstance().addAccount(newAccount);
+                if (success) {
+                    System.out.println(">>> Đăng ký thành công: " + user);
+                    out.println("SUCCESS");
+                } else {
+                    out.println("FAIL");
+                }
+            }
+        } else {
+            out.println("FAIL");
+        }
+    }
 }
