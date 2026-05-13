@@ -157,6 +157,16 @@ public class AppDatabase {
         } catch (SQLException e) { return false; }
     }
 
+    public synchronized boolean updateAuctionStatus(String auctionId, String status) {
+        String sql = "UPDATE Auctions SET status = ? WHERE id = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, status);
+            pstmt.setString(2, auctionId);
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) { return false; }
+    }
+
     public synchronized List<String> getBidHistory(String auctionId) {
         List<String> history = new ArrayList<>();
         String sql = "SELECT username, bidAmount, bidTime FROM Bids WHERE auction_id = ? ORDER BY bidAmount DESC";
