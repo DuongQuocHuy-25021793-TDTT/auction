@@ -9,6 +9,7 @@ import app.database.Session;
 import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
+import app.network.NetworkClient; 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -26,16 +27,12 @@ import javafx.stage.Stage;
 
 public class MainController {
 
-    @FXML
-    private FlowPane itemContainer;
-
+    @FXML private FlowPane itemContainer;
     @FXML private Button loginButton;
     @FXML private Button signUpButton;
     @FXML private Button btnAddProduct; 
     @FXML private Button btnLogout;     
-   
-    @FXML 
-    private TextField searchField;
+    @FXML private TextField searchField;
 
     @FXML
     public void initialize() {
@@ -52,6 +49,13 @@ public class MainController {
             if (btnAddProduct != null) { btnAddProduct.setVisible(false); btnAddProduct.setManaged(false); }
             if (btnLogout != null) { btnLogout.setVisible(false); btnLogout.setManaged(false); }
         }
+
+       
+        NetworkClient.startRealtimeListener(auctionId -> {
+            // Khi có thông báo từ Server, tiến hành làm mới lại toàn bộ giao diện danh sách
+            System.out.println("Giao diện nhận được thông báo cập nhật giá cho: " + auctionId);
+            handleShowAll(null);
+        });
     }
 
     @FXML
@@ -125,16 +129,13 @@ public class MainController {
 
 
     private void handleBid(Auction auction) {
-    
         if (!app.database.Session.isLoggedIn()) {
             showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
             return;
         }
 
-       
         String currentUsername = app.database.Session.getCurrentAccount().getUsername();
-        double newPrice = auction.getCurrentHighestPrice() + 50.0;
-
+        double newPrice = auction.getCurrentHighestPrice() + 50.0; // Đặt giá cao hơn 50$
 
         app.model.BidTransaction bid = new app.model.BidTransaction(
                 java.util.UUID.randomUUID().toString(), 
@@ -156,19 +157,16 @@ public class MainController {
                         return java.time.LocalDateTime.parse(in.nextString());
                     }
                 }).create();
-
         
         String bidJson = gson.toJson(bid);
         app.model.Message message = new app.model.Message("BID", bidJson); 
         String finalJsonToSend = gson.toJson(message); 
 
-       
         String response = app.network.NetworkClient.sendRequest(finalJsonToSend);
-
         
         if ("SUCCESS".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + auction.getItem().getName());
-            handleShowAll(null); 
+            
         } else if ("FAIL".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá (Giá không hợp lệ hoặc lỗi hệ thống)!");
         } else {
@@ -178,33 +176,24 @@ public class MainController {
 
     @FXML
     private void handleViewHistory(app.model.Auction auction) {
-
         app.model.Message msg = new app.model.Message("GET_HISTORY", auction.getId());
-    
-   
         com.google.gson.Gson gson = new com.google.gson.Gson();
         String response = app.network.NetworkClient.sendRequest(gson.toJson(msg));
 
-
         if (response != null && !response.isEmpty() && !response.equals("ERROR")) {
             try {
-     
                 java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<String>>(){}.getType();
                 java.util.List<String> history = gson.fromJson(response, listType);
 
-          
-            if (history.isEmpty()) {
-                showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", "Chưa có ai đặt giá cho sản phẩm này.");
+                if (history.isEmpty()) {
+                    showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", "Chưa có ai đặt giá cho sản phẩm này.");
                 } else {
                     StringBuilder sb = new StringBuilder();
                     sb.append("CHI TIẾT CÁC LƯỢT ĐẶT GIÁ:\n");
                     sb.append("------------------------------------------\n");
-                
-          
                     for (String line : history) {
                         sb.append("🔹 ").append(line).append("\n\n");
                     }
-                
                     showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", sb.toString());
                 }
             } catch (Exception e) {
@@ -231,13 +220,14 @@ public class MainController {
     @FXML
     public void handleLogout(ActionEvent event) {
         try {
+         
+            NetworkClient.stopRealtimeListener();
+
             Session.setCurrentAccount(null);
-     
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
        
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
             stage.show();
@@ -251,11 +241,13 @@ public class MainController {
     @FXML
     public void login(ActionEvent event) {
         try {
+           
+            NetworkClient.stopRealtimeListener();
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
 
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
             stage.show();
@@ -269,6 +261,8 @@ public class MainController {
     @FXML
     public void signUp(ActionEvent event) {
         try {
+            NetworkClient.stopRealtimeListener();
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
             javafx.scene.Parent root = loader.load();
 
@@ -294,7 +288,6 @@ public class MainController {
    
     @FXML
     public void handleShowHistory(ActionEvent event) {
-        // Kiểm tra đăng nhập
         if (!Session.isLoggedIn()) {
             showAlert(Alert.AlertType.WARNING, "Yêu cầu đăng nhập", "Bạn cần đăng nhập để xem lịch sử đấu giá của mình!");
             return;
@@ -303,19 +296,16 @@ public class MainController {
         String currentUser = Session.getCurrentAccount().getUsername();
         StringBuilder historyText = new StringBuilder();
 
-      
         List<Auction> allAuctions = AppDatabase.getInstance().getAuctions();
         for (Auction a : allAuctions) {
             List<String> bids = AppDatabase.getInstance().getBidHistory(a.getId());
             for (String bid : bids) {
-             
                 if (bid.contains(currentUser)) {
                     historyText.append("Sản phẩm '").append(a.getItem().getName()).append("': ").append(bid).append("\n");
                 }
             }
         }
 
-    
         if (historyText.length() == 0) {
             showAlert(Alert.AlertType.INFORMATION, "Lịch sử của bạn", "Bạn chưa tham gia đấu giá sản phẩm nào.");
         } else {
