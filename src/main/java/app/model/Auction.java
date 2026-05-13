@@ -120,7 +120,7 @@ public class Auction extends Entity {
         return null;
     }
 
-    public boolean placeBid(BidTransaction bid) {
+    public synchronized boolean placeBid(BidTransaction bid) {
         String validation = validateBid(bid);
         if (validation != null) {
             System.out.println("Đặt giá bị từ chối (" + validation + ")");
