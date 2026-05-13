@@ -94,29 +94,33 @@ public class ClientHandler implements Runnable {
             return;
         }
 
+        System.out.println("Auction status=" + auction.getStatus() + ", currentPrice=" + auction.getCurrentHighestPrice() + ", start=" + auction.getStartTime() + ", stop=" + auction.getStopTime());
+        String validation = auction.validateBid(bid);
+        if (validation != null) {
+            System.out.println("Đặt giá bị từ chối: " + validation);
+            out.println("FAIL_" + validation);
+            return;
+        }
+
         boolean success = auction.placeBid(bid);
         System.out.println("Kết quả placeBid: " + success);
         if (success) {
-            
             boolean dbSuccess = AppDatabase.getInstance().placeBid(bid.getAuctionId(), bid.getBidderId(), bid.getBidAmount());
             if (!dbSuccess) {
                 System.out.println("Lỗi lưu bid vào database!");
                 out.println("ERROR");
                 return;
             }
-            
+
             if ("FINISHED".equals(auction.getStatus())) {
                 AppDatabase.getInstance().updateAuctionStatus(bid.getAuctionId(), "FINISHED");
             }
             System.out.println("Server đã cập nhật giá mới: " + auction.getCurrentHighestPrice());
             out.println("SUCCESS"); 
-            
-     
             broadcast("UPDATE_AUCTION", bid.getAuctionId());
-            
         } else {
             System.out.println("Server từ chối yêu cầu đặt giá.");
-            out.println("FAIL"); 
+            out.println("FAIL_UNKNOWN"); 
         }
     }
 

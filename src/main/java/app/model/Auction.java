@@ -91,35 +91,39 @@ public class Auction extends Entity {
         this.status = status;
     }
 
-    public boolean placeBid(BidTransaction bid) {
+    public String validateBid(BidTransaction bid) {
         if (bid == null || bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
-            System.out.println("Thông tin bidder không hợp lệ!");
-            return false;
+            return "INVALID_BIDDER";
         }
 
         if (bid.getBidAmount() <= 0) {
-            System.out.println("Giá bid phải lớn hơn 0!");
-            return false;
+            return "INVALID_AMOUNT";
         }
 
-        if(LocalDateTime.now().isBefore(startTime)) {
-            System.out.println("Phiên đấu giá chưa bắt đầu!");
-            return false;
+        if (LocalDateTime.now().isBefore(startTime)) {
+            return "NOT_STARTED";
         }
 
-        if (!status.equalsIgnoreCase("RUNNING")) {
-            System.out.println("Phiên đấu giá không hoạt động!");
-            return false;
+        if (status == null || !status.equalsIgnoreCase("RUNNING")) {
+            return "NOT_RUNNING";
         }
 
         if (LocalDateTime.now().isAfter(stopTime)) {
             status = "FINISHED";
-            System.out.println("Phiên đấu giá đã hết thời gian!");
-            return false;
+            return "FINISHED";
         }
 
         if (bid.getBidAmount() <= currentHighestPrice) {
-            System.out.println("Giá bid phải cao hơn giá hiện tại!");
+            return "TOO_LOW";
+        }
+
+        return null;
+    }
+
+    public boolean placeBid(BidTransaction bid) {
+        String validation = validateBid(bid);
+        if (validation != null) {
+            System.out.println("Đặt giá bị từ chối (" + validation + ")");
             return false;
         }
 

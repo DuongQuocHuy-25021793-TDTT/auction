@@ -174,8 +174,20 @@ public class MainController {
         if ("SUCCESS".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + latestAuction.getItem().getName());
             
-        } else if ("FAIL".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá (Giá không hợp lệ hoặc phiên đấu giá đã kết thúc)!");
+        } else if ("FAIL_INVALID_BIDDER".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Thông tin người đặt giá không hợp lệ.");
+        } else if ("FAIL_INVALID_AMOUNT".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Số tiền đặt giá không hợp lệ.");
+        } else if ("FAIL_NOT_STARTED".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá chưa bắt đầu.");
+        } else if ("FAIL_NOT_RUNNING".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá hiện tại không hoạt động.");
+        } else if ("FAIL_FINISHED".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá đã kết thúc.");
+        } else if ("FAIL_TOO_LOW".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Giá đặt phải cao hơn giá hiện tại.");
+        } else if ("FAIL_UNKNOWN".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá.");
         } else if ("ERROR".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi hệ thống", "Lỗi lưu dữ liệu. Vui lòng thử lại!");
         } else {
