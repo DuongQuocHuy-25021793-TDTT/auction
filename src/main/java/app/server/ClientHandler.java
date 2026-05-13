@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter; 
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import com.google.gson.Gson;
 
@@ -17,6 +19,9 @@ import app.model.Message;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
+    
+
+    private static Set<PrintWriter> clientWriters = new CopyOnWriteArraySet<>();
 
     private final Gson gson = new com.google.gson.GsonBuilder()
             .registerTypeAdapter(LocalDateTime.class, new com.google.gson.TypeAdapter<LocalDateTime>() {
@@ -37,11 +42,15 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
+        PrintWriter out = null;
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            String inputLine;
+            out = new PrintWriter(socket.getOutputStream(), true);
+            
+          
+            clientWriters.add(out);
 
+            String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println(">>> SERVER NHẬN DỮ LIỆU: " + inputLine);
 
@@ -53,7 +62,6 @@ public class ClientHandler implements Runnable {
                 else if ("GET_HISTORY".equals(message.getAction())) {
                     handleGetHistory(message, out);
                 }
-             
                 else if ("LOGIN".equals(message.getAction())) {
                     handleLogin(message, out);
                 } 
@@ -63,7 +71,11 @@ public class ClientHandler implements Runnable {
             }
         } catch (Exception e) {
             System.out.println("[-] Một client đã ngắt kết nối.");
-            e.printStackTrace();
+        } finally {
+        
+            if (out != null) {
+                clientWriters.remove(out);
+            }
         }
     }
 
@@ -74,7 +86,6 @@ public class ClientHandler implements Runnable {
         System.out.println("ID phiên: " + bid.getAuctionId());
         System.out.println("ID người đấu giá: " + bid.getBidderId());
         System.out.println("Số tiền: " + bid.getBidAmount());
-        System.out.println("Thời gian: " + bid.getTimestamp());
 
         Auction auction = AppDatabase.getInstance().findAuctionById(bid.getAuctionId());
         if (auction == null) {
@@ -87,9 +98,22 @@ public class ClientHandler implements Runnable {
         if (success) {
             System.out.println("Server đã cập nhật giá mới: " + auction.getCurrentHighestPrice());
             out.println("SUCCESS"); 
+            
+     
+            broadcast("UPDATE_AUCTION", bid.getAuctionId());
+            
         } else {
             System.out.println("Server từ chối yêu cầu đặt giá.");
             out.println("FAIL"); 
+        }
+    }
+
+
+    private void broadcast(String action, String data) {
+        Message broadcastMsg = new Message(action, data);
+        String json = gson.toJson(broadcastMsg);
+        for (PrintWriter writer : clientWriters) {
+            writer.println(json);
         }
     }
 
@@ -98,8 +122,6 @@ public class ClientHandler implements Runnable {
         java.util.List<String> history = AppDatabase.getInstance().getBidHistory(auctionId);
         out.println(gson.toJson(history)); 
     }
-
-
 
     private void handleLogin(Message message, PrintWriter out) {
         String[] parts = message.getData().split(":");
@@ -131,7 +153,6 @@ public class ClientHandler implements Runnable {
                 System.out.println(">>> Đăng ký thất bại: Tài khoản " + user + " đã tồn tại.");
                 out.println("FAIL_EXISTS");
             } else {
-       
                 Account newAccount = new Account(
                     "U_" + System.currentTimeMillis(), 
                     user, 
