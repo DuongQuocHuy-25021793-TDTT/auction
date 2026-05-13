@@ -134,12 +134,19 @@ public class MainController {
             return;
         }
 
+       
+        Auction latestAuction = AppDatabase.getInstance().findAuctionById(auction.getId());
+        if (latestAuction == null) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên đấu giá!");
+            return;
+        }
+
         String currentUsername = app.database.Session.getCurrentAccount().getUsername();
-        double newPrice = auction.getCurrentHighestPrice() + 50.0; // Đặt giá cao hơn 50$
+        double newPrice = latestAuction.getCurrentHighestPrice() + 50.0; // Đặt giá cao hơn 50$
 
         app.model.BidTransaction bid = new app.model.BidTransaction(
                 java.util.UUID.randomUUID().toString(), 
-                auction.getId(), 
+                latestAuction.getId(), 
                 currentUsername, 
                 newPrice, 
                 java.time.LocalDateTime.now()
@@ -165,10 +172,12 @@ public class MainController {
         String response = app.network.NetworkClient.sendRequest(finalJsonToSend);
         
         if ("SUCCESS".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + auction.getItem().getName());
+            showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + latestAuction.getItem().getName());
             
         } else if ("FAIL".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá (Giá không hợp lệ hoặc lỗi hệ thống)!");
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá (Giá không hợp lệ hoặc phiên đấu giá đã kết thúc)!");
+        } else if ("ERROR".equals(response)) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi hệ thống", "Lỗi lưu dữ liệu. Vui lòng thử lại!");
         } else {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server Đấu Giá. Hãy kiểm tra xem Server đã chạy chưa!");
         }

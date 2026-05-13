@@ -95,6 +95,7 @@ public class ClientHandler implements Runnable {
         }
 
         boolean success = auction.placeBid(bid);
+        System.out.println("Kết quả placeBid: " + success);
         if (success) {
             
             boolean dbSuccess = AppDatabase.getInstance().placeBid(bid.getAuctionId(), bid.getBidderId(), bid.getBidAmount());
