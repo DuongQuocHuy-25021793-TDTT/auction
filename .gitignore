@@ -31,4 +31,5 @@ target/
 *.iws
 *.ipr
 out/
-account_data.json
+*.db
+*.json 
