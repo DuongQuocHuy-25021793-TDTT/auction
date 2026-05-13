@@ -1,9 +1,9 @@
 package app.model;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.Duration;
 
 public class Auction extends Entity {
     private Item item;
@@ -92,6 +92,16 @@ public class Auction extends Entity {
     }
 
     public boolean placeBid(BidTransaction bid) {
+        if (bid == null || bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
+            System.out.println("Thông tin bidder không hợp lệ!");
+            return false;
+        }
+
+        if (bid.getBidAmount() <= 0) {
+            System.out.println("Giá bid phải lớn hơn 0!");
+            return false;
+        }
+
         if(LocalDateTime.now().isBefore(startTime)) {
             System.out.println("Phiên đấu giá chưa bắt đầu!");
             return false;
