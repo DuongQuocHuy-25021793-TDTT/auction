@@ -1,6 +1,7 @@
 package app.controller;
 
 import java.io.IOException;
+import java.util.ArrayList; 
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,6 +12,9 @@ import app.model.Auction;
 import app.model.Electronics;
 import app.network.ClientConnection;
 import app.network.NetworkClient;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform; 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -26,6 +30,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class MainController {
 
@@ -35,6 +40,8 @@ public class MainController {
     @FXML private Button btnAddProduct; 
     @FXML private Button btnLogout;     
     @FXML private TextField searchField;
+
+    private List<Timeline> activeTimelines = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -52,16 +59,14 @@ public class MainController {
             if (btnLogout != null) { btnLogout.setVisible(false); btnLogout.setManaged(false); }
         }
 
-
         NetworkClient.startRealtimeListener(auctionId -> {
             System.out.println("Giao diện nhận được thông báo cập nhật giá cho: " + auctionId);
             handleShowAll(null);
         });
 
-
         ClientConnection.getInstance().setMessageListener(message -> {
             if (message != null && message.startsWith("AUCTION_CLOSED")) {
-            
+                // Tách chuỗi AUCTION_CLOSED|ID|Winner|Price
                 String[] parts = message.split("\\|");
                 if (parts.length >= 4) {
                     String auctionId = parts[1];
@@ -80,8 +85,7 @@ public class MainController {
                         }
                         
                         alert.showAndWait();
-                        
-               
+                      
                         handleShowAll(null);
                     });
                 }
@@ -129,6 +133,12 @@ public class MainController {
     }
 
     private void loadAuctionsToUI(List<Auction> auctions) {
+    
+        for (Timeline t : activeTimelines) {
+            t.stop();
+        }
+        activeTimelines.clear();
+        
         itemContainer.getChildren().clear(); 
 
         for (Auction auction : auctions) {
@@ -143,17 +153,51 @@ public class MainController {
             Label priceLbl = new Label("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
             priceLbl.setStyle("-fx-text-fill: #d97706; -fx-font-weight: bold;");
 
+            Label timeLbl = new Label();
+            timeLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
+
             Button bidBtn = new Button("Đặt giá ngay");
             bidBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-background-radius: 5;");
             bidBtn.setMaxWidth(Double.MAX_VALUE);
             bidBtn.setOnAction(e -> handleBid(auction));
+            
+            
+            long[] remainingSeconds = { auction.getRemainingTime() };
+            Runnable updateLabel = () -> {
+                if (remainingSeconds[0] <= 0) {
+                    timeLbl.setText("⏳ Đã kết thúc");
+                    bidBtn.setDisable(true); 
+                    bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
+                } else {
+                    long hours = remainingSeconds[0] / 3600;
+                    long minutes = (remainingSeconds[0] % 3600) / 60;
+                    long seconds = remainingSeconds[0] % 60;
+                    timeLbl.setText(String.format("⏳ Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+                }
+            };
+
+            updateLabel.run(); 
+
+            if (remainingSeconds[0] > 0) {
+                Timeline timeline = new Timeline(
+                    new KeyFrame(Duration.seconds(1), event -> {
+                        remainingSeconds[0]--;
+                        updateLabel.run();
+                    })
+                );
+                timeline.setCycleCount(Animation.INDEFINITE);
+                timeline.play();
+                activeTimelines.add(timeline); 
+            }
+           
 
             Button historyBtn = new Button("Xem lịch sử đặt giá");
             historyBtn.setStyle("-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 5;");
             historyBtn.setMaxWidth(Double.MAX_VALUE);
             historyBtn.setOnAction(e -> handleViewHistory(auction));
 
-            card.getChildren().addAll(nameLbl, priceLbl, bidBtn, historyBtn);
+           
+            card.getChildren().addAll(nameLbl, priceLbl, timeLbl, bidBtn, historyBtn);
             itemContainer.getChildren().add(card);
         }
     }
@@ -181,7 +225,7 @@ public class MainController {
                 newPrice, 
                 java.time.LocalDateTime.now()
         );
-       
+        
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
                 .registerTypeAdapter(java.time.LocalDateTime.class, new com.google.gson.TypeAdapter<java.time.LocalDateTime>() {
                     @Override
