@@ -56,7 +56,12 @@ public class ClientHandler implements Runnable {
 
                 Message message = gson.fromJson(inputLine, Message.class);
                 
-                if ("BID".equals(message.getAction())) {
+                if ("READY".equals(message.getAction())) {
+                  
+                    System.out.println("[+] Client kết nối để nhận thông báo từ server.");
+                    continue;
+                }
+                else if ("BID".equals(message.getAction())) {
                     handleBidMessage(message, out); 
                 } 
                 else if ("GET_HISTORY".equals(message.getAction())) {

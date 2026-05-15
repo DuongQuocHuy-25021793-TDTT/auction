@@ -45,7 +45,10 @@ public class ClientConnection {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("Đã kết nối tới Server thành công!");
             
-           
+         
+            Message readyMsg = new Message("READY", "LISTENING");
+            out.println(gson.toJson(readyMsg));
+            
             startListening();
             
         } catch (IOException e) {
