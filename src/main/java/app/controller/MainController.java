@@ -66,7 +66,7 @@ public class MainController {
 
         ClientConnection.getInstance().setMessageListener(message -> {
             if (message != null && message.startsWith("AUCTION_CLOSED")) {
-                // Tách chuỗi AUCTION_CLOSED|ID|Winner|Price
+                
                 String[] parts = message.split("\\|");
                 if (parts.length >= 4) {
                     String auctionId = parts[1];

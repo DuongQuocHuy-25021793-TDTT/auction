@@ -27,7 +27,7 @@ public class AppDatabase {
         if (getAccounts().isEmpty()) seedAccounts();
         if (getAuctions().isEmpty()) seedInventory();
         
-        // ĐÃ THÊM: Gọi luồng giám sát tự động ngay khi khởi tạo Database
+       
         startAuctionMonitor();
     }
 

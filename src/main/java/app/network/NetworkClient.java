@@ -12,7 +12,7 @@ import javafx.application.Platform;
 
 public class NetworkClient {
     private static final String SERVER_IP = "127.0.0.1"; 
-    private static final int PORT = 8888;
+    private static final int PORT = 8080;
 
     private static Socket listenSocket;
 

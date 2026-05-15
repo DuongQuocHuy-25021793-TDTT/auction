@@ -45,7 +45,7 @@ public class ClientConnection {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("Đã kết nối tới Server thành công!");
             
-            // ĐÃ THÊM 2: Vừa kết nối xong là gọi hàm lắng nghe ngay
+           
             startListening();
             
         } catch (IOException e) {
