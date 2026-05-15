@@ -16,7 +16,6 @@ public class Server {
 
     private ExecutorService clientPool = Executors.newFixedThreadPool(50);
     
-    
     public static final List<ClientHandler> activeClients = new CopyOnWriteArrayList<>();
 
     public void startServer() {
@@ -24,11 +23,9 @@ public class Server {
             System.out.println("===   SERVER ĐẤU GIÁ ĐANG CHẠY Ở PORT " + PORT + " ===");
 
             while (true) {
-         
                 Socket clientSocket = serverSocket.accept();
                 System.out.println(" [+] Có Client mới kết nối: " + clientSocket.getInetAddress());
 
-                
                 ClientHandler handler = new ClientHandler(clientSocket);
                 activeClients.add(handler);
       
@@ -39,19 +36,66 @@ public class Server {
         }
     }
 
-    
     public static void broadcast(String message) {
         for (ClientHandler client : activeClients) {
             client.sendMessage(message);
         }
     }
 
+    public static void startAuctionChecker() {
+        Thread checkerThread = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1000); 
+
+                    List<app.model.Auction> auctions = app.database.AppDatabase.getInstance().getAuctions();
+                    
+                    for (app.model.Auction auction : auctions) {
+                   
+                        if ("RUNNING".equals(auction.getStatus()) && auction.getRemainingTime() <= 0) {
+                            
+                          
+                            auction.setStatus("FINISHED");
+
+                         
+                            String winner = auction.getHighestBidderId();
+                            if (winner == null || winner.isEmpty()) {
+                                winner = "null"; 
+                            }
+                            double finalPrice = auction.getCurrentHighestPrice();
+
+                            System.out.println("=========================================");
+                            System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC: " + auction.getItem().getName());
+                            System.out.println(">>> TRẠNG THÁI ĐÃ ĐƯỢC CHỐT SỔ THÀNH CÔNG");
+                            
+                           
+                            broadcast("AUCTION_CLOSED|" + auction.getId() + "|" + winner + "|" + finalPrice);
+                            
+                            System.out.println("=========================================\n");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    System.out.println("Tiến trình kiểm tra bị gián đoạn.");
+                    break;
+                } catch (Exception e) {
+                    System.out.println("Lỗi khi kiểm tra thời gian đấu giá: " + e.getMessage());
+                }
+            }
+        });
+        
+        checkerThread.setDaemon(true); 
+        checkerThread.start();
+    }
+  
+
     public static void main(String[] args) {
+        
+        startAuctionChecker();
+
         Server server = new Server();
         server.startServer();
     }
 }
-
 
 class ClientHandler implements Runnable {
     private Socket socket;
@@ -64,21 +108,17 @@ class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            
             out = new PrintWriter(socket.getOutputStream(), true);
             String jsonMessage;
-            
 
             while ((jsonMessage = in.readLine()) != null) {
                 System.out.println("SERVER NHẬN ĐƯỢC TỪ CLIENT: " + jsonMessage);
-
+                
             }
         } catch (IOException e) {
             System.out.println(" [-] Một Client đã ngắt kết nối.");
         } finally {
-            
             Server.activeClients.remove(this);
         }
     }
