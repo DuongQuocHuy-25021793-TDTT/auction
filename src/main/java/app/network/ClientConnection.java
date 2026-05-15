@@ -17,6 +17,16 @@ public class ClientConnection {
     private BufferedReader in;
     private Gson gson; 
 
+
+    public interface MessageListener {
+        void onMessageReceived(String message);
+    }
+    private MessageListener messageListener;
+
+    public void setMessageListener(MessageListener listener) {
+        this.messageListener = listener;
+    }
+
     private ClientConnection() {
         gson = new Gson(); 
     }
@@ -34,9 +44,35 @@ public class ClientConnection {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("Đã kết nối tới Server thành công!");
+            
+            // ĐÃ THÊM 2: Vừa kết nối xong là gọi hàm lắng nghe ngay
+            startListening();
+            
         } catch (IOException e) {
             System.out.println("Không thể kết nối đến Server: " + e.getMessage());
         }
+    }
+
+    
+    private void startListening() {
+        Thread listenerThread = new Thread(() -> {
+            try {
+                String serverMessage;
+              
+                while ((serverMessage = in.readLine()) != null) {
+                    System.out.println("Client nhận được từ Server: " + serverMessage);
+                    
+             
+                    if (messageListener != null) {
+                        messageListener.onMessageReceived(serverMessage);
+                    }
+                }
+            } catch (IOException e) {
+                System.out.println("Ngắt kết nối / Lỗi đọc dữ liệu từ Server.");
+            }
+        });
+        listenerThread.setDaemon(true); 
+        listenerThread.start();
     }
 
     public void sendMessage(Message message) {
