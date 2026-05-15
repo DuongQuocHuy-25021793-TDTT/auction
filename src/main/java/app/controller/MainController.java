@@ -9,7 +9,9 @@ import app.database.Session;
 import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
-import app.network.NetworkClient; 
+import app.network.ClientConnection;
+import app.network.NetworkClient;
+import javafx.application.Platform; 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -50,11 +52,40 @@ public class MainController {
             if (btnLogout != null) { btnLogout.setVisible(false); btnLogout.setManaged(false); }
         }
 
-       
+
         NetworkClient.startRealtimeListener(auctionId -> {
-            // Khi có thông báo từ Server, tiến hành làm mới lại toàn bộ giao diện danh sách
             System.out.println("Giao diện nhận được thông báo cập nhật giá cho: " + auctionId);
             handleShowAll(null);
+        });
+
+
+        ClientConnection.getInstance().setMessageListener(message -> {
+            if (message != null && message.startsWith("AUCTION_CLOSED")) {
+            
+                String[] parts = message.split("\\|");
+                if (parts.length >= 4) {
+                    String auctionId = parts[1];
+                    String winner = parts[2];
+                    String price = parts[3];
+
+                    Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("🎉 Thông báo chốt đơn");
+                        alert.setHeaderText("Phiên đấu giá " + auctionId + " đã kết thúc!");
+                        
+                        if (winner.equals("null") || winner.isEmpty()) {
+                            alert.setContentText("Rất tiếc, không có ai đặt giá cho sản phẩm này.");
+                        } else {
+                            alert.setContentText("Người chiến thắng: " + winner + "\nVới mức giá: " + price + " USD");
+                        }
+                        
+                        alert.showAndWait();
+                        
+               
+                        handleShowAll(null);
+                    });
+                }
+            }
         });
     }
 
@@ -134,7 +165,6 @@ public class MainController {
             return;
         }
 
-       
         Auction latestAuction = AppDatabase.getInstance().findAuctionById(auction.getId());
         if (latestAuction == null) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên đấu giá!");
@@ -262,7 +292,7 @@ public class MainController {
     @FXML
     public void login(ActionEvent event) {
         try {
-           
+            
             NetworkClient.stopRealtimeListener();
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
