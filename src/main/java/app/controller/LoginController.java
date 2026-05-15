@@ -63,6 +63,8 @@ public class LoginController {
                 Account account = new Account("U_Temp", username, password, AccountRole.GUEST);
                 Session.setCurrentAccount(account);
 
+               
+                app.network.ClientConnection.getInstance().connect(SERVER_IP, SERVER_PORT);
               
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Main.fxml"));
                 Scene scene = new Scene(loader.load());
