@@ -242,6 +242,7 @@ public class AppDatabase {
                             System.out.println("=====================================");
                             System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC: " + auction.getItem().getName());
                             System.out.println(">>> TRẠNG THÁI ĐÃ ĐƯỢC CHỐT SỔ THÀNH CÔNG");
+                            app.network.Server.broadcast("AUCTION_CLOSED|" + auction.getId() + "|" + auction.getHighestBidderId() + "|" + auction.getCurrentHighestPrice());
                             System.out.println("=====================================\n");
                         }
                     }
