@@ -26,6 +26,9 @@ public class AppDatabase {
         createTables();
         if (getAccounts().isEmpty()) seedAccounts();
         if (getAuctions().isEmpty()) seedInventory();
+        
+        // ĐÃ THÊM: Gọi luồng giám sát tự động ngay khi khởi tạo Database
+        startAuctionMonitor();
     }
 
     public static AppDatabase getInstance() { return INSTANCE; }
@@ -218,5 +221,41 @@ public class AppDatabase {
             e.printStackTrace();
         }
         return null; 
+    }
+
+   
+    public void startAuctionMonitor() {
+        Thread monitorThread = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(5000); 
+                    
+                    List<Auction> auctions = getAuctions(); 
+                    for (Auction auction : auctions) {
+            
+                        if ("RUNNING".equalsIgnoreCase(auction.getStatus()) && 
+                            LocalDateTime.now().isAfter(auction.getStopTime())) {
+                            
+
+                            updateAuctionStatus(auction.getId(), "FINISHED");
+                            
+                            System.out.println("=====================================");
+                            System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC: " + auction.getItem().getName());
+                            System.out.println(">>> TRẠNG THÁI ĐÃ ĐƯỢC CHỐT SỔ THÀNH CÔNG");
+                            System.out.println("=====================================\n");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    System.out.println("Luồng giám sát bị gián đoạn.");
+                    break;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        
+        monitorThread.setDaemon(true); 
+        monitorThread.start();
+        System.out.println("[+] Đã khởi động luồng giám sát phiên đấu giá tự động (5s/lần).");
     }
 }
