@@ -3,7 +3,7 @@ package app.server;
     import java.net.ServerSocket;
     import java.net.Socket;
     public class ServerMain{
-        private static final int PORT = 8888;
+        private static final int PORT = 8080;
         public static void main(String[] args) {
         System.out.println("=== HỆ THỐNG SERVER ĐẤU GIÁ ĐANG KHỞI ĐỘNG ===");
         
