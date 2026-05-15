@@ -14,6 +14,21 @@ public class Auction extends Entity {
     private String highestBidderId;
     private List<BidTransaction> bidHistory;
 
+
+    public static final int DURATION_MINUTES = 30;
+
+ 
+    public Auction(String id, Item item, double startingPrice) {
+        super(id);
+        this.item = item;
+        this.startTime = LocalDateTime.now();
+        this.stopTime = this.startTime.plusMinutes(DURATION_MINUTES);
+        this.currentHighestPrice = startingPrice;
+        this.status = "RUNNING";
+        this.bidHistory = new ArrayList<>();
+    }
+  
+
     public Auction(String id, Item item, LocalDateTime startTime, LocalDateTime stopTime,
                    double currentHighestPrice, String status) {
         super(id);
@@ -37,17 +52,16 @@ public class Auction extends Entity {
         return stopTime;
     }
 
-    public long getElapseTime() { // Kiểm tra thời gian đã qua của phiên đấu giá
+    public long getElapseTime() { 
         if (LocalDateTime.now().isBefore(startTime)) {
             return 0;
         }
 
-        // Nếu phiên đã kết thúc thì tính từ stopTime đến hiện tại
         LocalDateTime endTime = LocalDateTime.now().isAfter(stopTime) ? stopTime : LocalDateTime.now();
         return Duration.between(startTime, endTime).getSeconds();
     }
 
-    // Kiểm tra thời gian còn lại của phiên đấu giá
+  
     public long getRemainingTime() {
         if (LocalDateTime.now().isAfter(stopTime)) {
             return 0;
