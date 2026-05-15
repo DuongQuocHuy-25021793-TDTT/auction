@@ -46,24 +46,24 @@ public class Server {
         Thread checkerThread = new Thread(() -> {
             while (true) {
                 try {
-                    Thread.sleep(1000); 
-
+                    Thread.sleep(1000);
                     List<app.model.Auction> auctions = app.database.AppDatabase.getInstance().getAuctions();
                     
                     for (app.model.Auction auction : auctions) {
-                   
+                       
                         if ("RUNNING".equals(auction.getStatus()) && auction.getRemainingTime() <= 0) {
                             
-                          
+                       
                             auction.setStatus("FINISHED");
 
-                         
+                          
                             String winner = auction.getHighestBidderId();
                             if (winner == null || winner.isEmpty()) {
                                 winner = "null"; 
                             }
                             double finalPrice = auction.getCurrentHighestPrice();
 
+                        
                             System.out.println("=========================================");
                             System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC: " + auction.getItem().getName());
                             System.out.println(">>> TRẠNG THÁI ĐÃ ĐƯỢC CHỐT SỔ THÀNH CÔNG");
@@ -86,10 +86,10 @@ public class Server {
         checkerThread.setDaemon(true); 
         checkerThread.start();
     }
-  
+
 
     public static void main(String[] args) {
-        
+       
         startAuctionChecker();
 
         Server server = new Server();
@@ -112,10 +112,10 @@ class ClientHandler implements Runnable {
             out = new PrintWriter(socket.getOutputStream(), true);
             String jsonMessage;
 
-            
+    
             com.google.gson.Gson gson = new com.google.gson.Gson();
             
-            
+           
             com.google.gson.Gson gsonDate = new com.google.gson.GsonBuilder()
                 .registerTypeAdapter(java.time.LocalDateTime.class, new com.google.gson.TypeAdapter<java.time.LocalDateTime>() {
                     @Override
@@ -136,7 +136,7 @@ class ClientHandler implements Runnable {
                     app.model.Message msg = gson.fromJson(jsonMessage, app.model.Message.class);
                     if (msg == null) continue;
 
-                
+                   
                     switch (msg.getCommand()) {
                         
                         case "BID":
@@ -145,7 +145,7 @@ class ClientHandler implements Runnable {
                             app.model.Auction auction = app.database.AppDatabase.getInstance().findAuctionById(bid.getAuctionId());
                             
                             if (auction != null) {
-                         
+                                
                                 String validation = auction.validateBid(bid);
                                 
                                 if (validation == null) {
@@ -155,7 +155,7 @@ class ClientHandler implements Runnable {
                                  
                                     Server.broadcast("UPDATE_AUCTION|" + auction.getId()); 
                                 } else {
-                             
+                                   
                                     sendMessage("FAIL_" + validation); 
                                 }
                             } else {
@@ -165,9 +165,9 @@ class ClientHandler implements Runnable {
 
                         case "GET_HISTORY":
                             String reqAuctionId = msg.getData();
-                         
+                           
                             List<String> historyStrings = app.database.AppDatabase.getInstance().getBidHistory(reqAuctionId);
-                     
+                           
                             sendMessage(gson.toJson(historyStrings));
                             break;
 
