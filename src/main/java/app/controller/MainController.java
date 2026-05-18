@@ -156,11 +156,21 @@ public class MainController {
             Label timeLbl = new Label();
             timeLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
 
+            TextField txtBidAmount = new TextField();
+            txtBidAmount.setPromptText("Nhập giá bạn muốn đặt...");
+            txtBidAmount.setStyle("-fx-background-radius: 5; -fx-border-radius: 5; -fx-border-color: #cbd5e1;");
+            txtBidAmount.setMaxWidth(Double.MAX_VALUE);
+
+            if (auction.getRemainingTime() <= 0) {
+                txtBidAmount.setDisable(true);
+            }
+
             Button bidBtn = new Button("Đặt giá ngay");
             bidBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-background-radius: 5;");
             bidBtn.setMaxWidth(Double.MAX_VALUE);
-            bidBtn.setOnAction(e -> handleBid(auction));
             
+           
+            bidBtn.setOnAction(e -> handleBid(auction, txtBidAmount)); 
             
             long[] remainingSeconds = { auction.getRemainingTime() };
             Runnable updateLabel = () -> {
@@ -168,6 +178,7 @@ public class MainController {
                     timeLbl.setText("⏳ Đã kết thúc");
                     bidBtn.setDisable(true); 
                     bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
+                    txtBidAmount.setDisable(true); // Khóa ô nhập khi hết giờ
                 } else {
                     long hours = remainingSeconds[0] / 3600;
                     long minutes = (remainingSeconds[0] % 3600) / 60;
@@ -189,21 +200,20 @@ public class MainController {
                 timeline.play();
                 activeTimelines.add(timeline); 
             }
-           
+            
 
             Button historyBtn = new Button("Xem lịch sử đặt giá");
             historyBtn.setStyle("-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 5;");
             historyBtn.setMaxWidth(Double.MAX_VALUE);
             historyBtn.setOnAction(e -> handleViewHistory(auction));
 
-           
-            card.getChildren().addAll(nameLbl, priceLbl, timeLbl, bidBtn, historyBtn);
+          
+            card.getChildren().addAll(nameLbl, priceLbl, timeLbl, txtBidAmount, bidBtn, historyBtn);
             itemContainer.getChildren().add(card);
         }
     }
 
-
-    private void handleBid(Auction auction) {
+    private void handleBid(Auction auction, TextField txtBidAmount) {
         if (!app.database.Session.isLoggedIn()) {
             showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Cảnh báo", "Bạn cần đăng nhập để đặt giá!");
             return;
@@ -215,8 +225,28 @@ public class MainController {
             return;
         }
 
+    
+        String inputText = txtBidAmount.getText().trim();
+        if (inputText.isEmpty()) {
+            showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Thông báo", "Vui lòng nhập số tiền bạn muốn đấu giá!");
+            return;
+        }
+
+        double newPrice = 0;
+        try {
+            newPrice = Double.parseDouble(inputText);
+        } catch (NumberFormatException e) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi nhập liệu", "Số tiền nhập vào phải là số hợp lệ (Ví dụ: 1200 hoặc 550.5)!");
+            return;
+        }
+
+       
+        if (newPrice <= latestAuction.getCurrentHighestPrice()) {
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Giá quá thấp", "Giá bạn đặt phải lớn hơn mức giá hiện tại (" + latestAuction.getCurrentHighestPrice() + " USD)!");
+            return;
+        }
+
         String currentUsername = app.database.Session.getCurrentAccount().getUsername();
-        double newPrice = latestAuction.getCurrentHighestPrice() + 50.0; // Đặt giá cao hơn 50$
 
         app.model.BidTransaction bid = new app.model.BidTransaction(
                 java.util.UUID.randomUUID().toString(), 
@@ -247,6 +277,7 @@ public class MainController {
         
         if ("SUCCESS".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + latestAuction.getItem().getName());
+            txtBidAmount.clear(); 
             
         } else if ("FAIL_INVALID_BIDDER".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Thông tin người đặt giá không hợp lệ.");
