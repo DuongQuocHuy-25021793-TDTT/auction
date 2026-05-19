@@ -134,9 +134,9 @@ public class AppDatabase {
     }
 
     private void ensureDefaultAccounts() {
-        ensureDefaultUser(new Admin("U_ADMIN", "admin", "admin123"));
-        ensureDefaultUser(new Seller("U_SELLER", "seller", "seller123"));
-        ensureDefaultUser(new Bidder("U_BIDDER", "bidder", "bidder123"));
+        ensureDefaultUser(new Admin("U_admin", "admin", "admin123"));
+        ensureDefaultUser(new Seller("U_seller", "seller", "seller123"));
+        ensureDefaultUser(new Bidder("U_bidder", "bidder", "bidder123"));
     }
 
     private void ensureDefaultUser(User user) {
@@ -205,7 +205,7 @@ public class AppDatabase {
         String sql = "INSERT INTO Accounts (username, password, role) VALUES (?, ?, ?)";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, normalizeUsername(user.getUsername()));
-            pstmt.setString(2, user.getPassword());
+            pstmt.setString(2, app.utils.PasswordUtil.hashPassword(user.getPassword()));
             pstmt.setString(3, user.getRole().name());
             pstmt.executeUpdate();
             return true;
@@ -215,18 +215,48 @@ public class AppDatabase {
     }
 
     public synchronized User authenticate(String username, String password) {
-        String sql = "SELECT * FROM Accounts WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM Accounts WHERE username = ?";
+        User authenticatedUser = null;
+        boolean needsMigration = false;
+
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, normalizeUsername(username));
-            pstmt.setString(2, password);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return createUserFromResultSet(rs);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String storedPassword = rs.getString("password");
+                    // Check if the stored password is plain text (legacy)
+                    if (storedPassword != null && storedPassword.length() < 64) {
+                        if (storedPassword.equals(password)) {
+                            authenticatedUser = createUserFromResultSet(rs);
+                            needsMigration = true;
+                        }
+                    } else {
+                        if (app.utils.PasswordUtil.checkPassword(password, storedPassword)) {
+                            authenticatedUser = createUserFromResultSet(rs);
+                        }
+                    }
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+
+        if (needsMigration) {
+            migratePasswordToHash(username, password);
+        }
+
+        return authenticatedUser;
+    }
+
+    private void migratePasswordToHash(String username, String plainPassword) {
+        String sql = "UPDATE Accounts SET password = ? WHERE username = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, app.utils.PasswordUtil.hashPassword(plainPassword));
+            pstmt.setString(2, normalizeUsername(username));
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Lỗi migrate mật khẩu: " + e.getMessage());
+        }
     }
 
     public synchronized boolean usernameExists(String username) {
