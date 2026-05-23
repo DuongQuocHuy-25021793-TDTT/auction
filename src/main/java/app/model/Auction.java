@@ -105,7 +105,8 @@ public class Auction extends Entity {
         this.status = status;
     }
 
-    public String validateBid(BidTransaction bid) {
+ 
+    public synchronized String validateBid(BidTransaction bid) {
         if (bid == null || bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
             return "INVALID_BIDDER";
         }
@@ -134,6 +135,7 @@ public class Auction extends Entity {
         return null;
     }
 
+    
     public synchronized boolean placeBid(BidTransaction bid) {
         String validation = validateBid(bid);
         if (validation != null) {
