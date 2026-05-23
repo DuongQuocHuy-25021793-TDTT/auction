@@ -170,6 +170,17 @@ public class AppDatabase {
         } catch (SQLException e) { return false; }
     }
 
+    
+    public synchronized boolean updateAuctionStopTime(String auctionId, LocalDateTime newStopTime) {
+        String sql = "UPDATE Auctions SET stopTime = ? WHERE id = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStopTime.toString());
+            pstmt.setString(2, auctionId);
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) { return false; }
+    }
+
     public synchronized List<String> getBidHistory(String auctionId) {
         List<String> history = new ArrayList<>();
         String sql = "SELECT username, bidAmount, bidTime FROM Bids WHERE auction_id = ? ORDER BY bidAmount DESC";
@@ -185,7 +196,7 @@ public class AppDatabase {
     public synchronized Account authenticate(String username, String password) {
         String sql = "SELECT * FROM Accounts WHERE username = ? AND password = ?";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            // Chuyển username về chữ thường để không phân biệt hoa/thường khi đăng nhập
+           
             pstmt.setString(1, username.toLowerCase()); 
             pstmt.setString(2, password);
             
@@ -259,4 +270,4 @@ public class AppDatabase {
         monitorThread.start();
         System.out.println("[+] Đã khởi động luồng giám sát phiên đấu giá tự động (5s/lần).");
     }
-}//
+}
