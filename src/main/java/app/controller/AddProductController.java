@@ -76,7 +76,7 @@ public class AddProductController {
            
             String auctionId = "A_" + UUID.randomUUID().toString().substring(0, 5);
             Auction newAuction = new Auction(auctionId, newItem, 
-                    LocalDateTime.now(), LocalDateTime.now().plusDays(1), price, "RUNNING");
+                    LocalDateTime.now(), LocalDateTime.now().plusMinutes(10), price, "RUNNING");
 
             boolean success = AppDatabase.getInstance().addAuction(newAuction);
 
