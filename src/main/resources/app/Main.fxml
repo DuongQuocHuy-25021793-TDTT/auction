@@ -49,8 +49,8 @@
                   </Label>
                   <HBox HBox.hgrow="ALWAYS" />
                   
-                  <TextField prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
-                  <Button mnemonicParsing="false" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
+                  <TextField fx:id="searchField" prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
+                  <Button mnemonicParsing="false" onAction="#handleSearch" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
                   
                   <Label text="|" textFill="#bdc3c7">
                      <font>

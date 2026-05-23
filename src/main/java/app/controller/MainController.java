@@ -18,6 +18,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -26,6 +27,9 @@ public class MainController {
 
     @FXML
     private FlowPane itemContainer;
+
+    @FXML
+    private TextField searchField;
 
     @FXML
     public void initialize() {
@@ -50,6 +54,16 @@ public class MainController {
         List<Auction> elecs = AppDatabase.getInstance().getAuctions().stream()
                 .filter(a -> a.getItem() instanceof Electronics).collect(Collectors.toList());
         loadAuctionsToUI(elecs);
+    }
+
+    @FXML
+    public void handleSearch(ActionEvent event) {
+        String keyword = searchField.getText().toLowerCase();
+        List<Auction> filtered = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem().getName().toLowerCase().contains(keyword) ||
+                             a.getItem().getDescription().toLowerCase().contains(keyword))
+                .collect(Collectors.toList());
+        loadAuctionsToUI(filtered);
     }
 
     private void loadAuctionsToUI(List<Auction> auctions) {
