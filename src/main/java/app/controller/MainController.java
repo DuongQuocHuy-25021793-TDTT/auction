@@ -71,6 +71,9 @@ public class MainController {
     @FXML private Button btnAll, btnArt, btnElec, btnVeh;
     private String currentFilterType = null;
 
+    @FXML
+    private TextField searchField;
+
     private final AppDatabase database = AppDatabase.getInstance();
 
     private final Gson gson = new com.google.gson.GsonBuilder()
@@ -105,6 +108,20 @@ public class MainController {
     }
 
     @FXML
+    public void handleSearch(ActionEvent event) {
+        String keyword = searchField.getText().toLowerCase();
+        List<Auction> filtered = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem().getName().toLowerCase().contains(keyword) ||
+                             a.getItem().getDescription().toLowerCase().contains(keyword))
+                .collect(Collectors.toList());
+        loadAuctionsToUI(filtered);
+    }
+
+    private void loadAuctionsToUI(List<Auction> auctions) {
+        itemContainer.getChildren().clear();
+        auctions.forEach(this::createAuctionCard);
+    }
+
     public void handleRequestProduct() {
         User user = Session.getCurrentUser();
         if (!(user instanceof Bidder)) {
