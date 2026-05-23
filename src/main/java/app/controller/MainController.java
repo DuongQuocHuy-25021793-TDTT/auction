@@ -65,8 +65,8 @@ public class MainController {
         });
 
         ClientConnection.getInstance().setMessageListener(message -> {
+        
             if (message != null && message.startsWith("AUCTION_CLOSED")) {
-                
                 String[] parts = message.split("\\|");
                 if (parts.length >= 4) {
                     String auctionId = parts[1];
@@ -83,12 +83,21 @@ public class MainController {
                         } else {
                             alert.setContentText("Người chiến thắng: " + winner + "\nVới mức giá: " + price + " USD");
                         }
-                        
                         alert.showAndWait();
-                      
                         handleShowAll(null);
                     });
                 }
+            }
+           
+            else if (message != null && message.startsWith("TIME_EXTENDED")) {
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("⏱️ Gia hạn chống bắn tỉa");
+                    alert.setHeaderText("Phiên đấu giá đang rất nóng!");
+                    alert.setContentText("Có người vừa đặt giá ở những giây cuối cùng. Hệ thống đã tự động gia hạn thêm 1 phút!");
+                    alert.show(); 
+                    handleShowAll(null); 
+                });
             }
         });
     }
@@ -96,7 +105,6 @@ public class MainController {
     @FXML
     public void handleSearch(ActionEvent event) {
         String keyword = searchField.getText().trim().toLowerCase();
-
         if (keyword.isEmpty()) {
             handleShowAll(null);
             return;
@@ -107,7 +115,6 @@ public class MainController {
                 .collect(Collectors.toList());
 
         loadAuctionsToUI(searchResults);
-        
         if (searchResults.isEmpty()) {
             showAlert(Alert.AlertType.INFORMATION, "Kết quả tìm kiếm", "Không tìm thấy sản phẩm nào khớp với: " + keyword);
         }
@@ -133,12 +140,10 @@ public class MainController {
     }
 
     private void loadAuctionsToUI(List<Auction> auctions) {
-    
         for (Timeline t : activeTimelines) {
             t.stop();
         }
         activeTimelines.clear();
-        
         itemContainer.getChildren().clear(); 
 
         for (Auction auction : auctions) {
@@ -160,7 +165,6 @@ public class MainController {
             txtBidAmount.setPromptText("Nhập giá bạn muốn đặt...");
             txtBidAmount.setStyle("-fx-background-radius: 5; -fx-border-radius: 5; -fx-border-color: #cbd5e1;");
             txtBidAmount.setMaxWidth(Double.MAX_VALUE);
-
             if (auction.getRemainingTime() <= 0) {
                 txtBidAmount.setDisable(true);
             }
@@ -168,8 +172,6 @@ public class MainController {
             Button bidBtn = new Button("Đặt giá ngay");
             bidBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-background-radius: 5;");
             bidBtn.setMaxWidth(Double.MAX_VALUE);
-            
-           
             bidBtn.setOnAction(e -> handleBid(auction, txtBidAmount)); 
             
             long[] remainingSeconds = { auction.getRemainingTime() };
@@ -178,7 +180,7 @@ public class MainController {
                     timeLbl.setText("⏳ Đã kết thúc");
                     bidBtn.setDisable(true); 
                     bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
-                    txtBidAmount.setDisable(true); // Khóa ô nhập khi hết giờ
+                    txtBidAmount.setDisable(true); 
                 } else {
                     long hours = remainingSeconds[0] / 3600;
                     long minutes = (remainingSeconds[0] % 3600) / 60;
@@ -201,13 +203,11 @@ public class MainController {
                 activeTimelines.add(timeline); 
             }
             
-
             Button historyBtn = new Button("Xem lịch sử đặt giá");
-            historyBtn.setStyle("-fx-background-color: #f3f4f6; -fx-text-fill: #374151; -fx-background-radius: 5;");
+            historyBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 5;");
             historyBtn.setMaxWidth(Double.MAX_VALUE);
             historyBtn.setOnAction(e -> handleViewHistory(auction));
 
-          
             card.getChildren().addAll(nameLbl, priceLbl, timeLbl, txtBidAmount, bidBtn, historyBtn);
             itemContainer.getChildren().add(card);
         }
@@ -225,7 +225,6 @@ public class MainController {
             return;
         }
 
-    
         String inputText = txtBidAmount.getText().trim();
         if (inputText.isEmpty()) {
             showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Thông báo", "Vui lòng nhập số tiền bạn muốn đấu giá!");
@@ -236,13 +235,12 @@ public class MainController {
         try {
             newPrice = Double.parseDouble(inputText);
         } catch (NumberFormatException e) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi nhập liệu", "Số tiền nhập vào phải là số hợp lệ (Ví dụ: 1200 hoặc 550.5)!");
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi nhập liệu", "Số tiền nhập vào phải là số hợp lệ!");
             return;
         }
 
-       
         if (newPrice <= latestAuction.getCurrentHighestPrice()) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Giá quá thấp", "Giá bạn đặt phải lớn hơn mức giá hiện tại (" + latestAuction.getCurrentHighestPrice() + " USD)!");
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Giá quá thấp", "Giá đặt phải lớn hơn mức giá hiện tại (" + latestAuction.getCurrentHighestPrice() + " USD)!");
             return;
         }
 
@@ -262,7 +260,6 @@ public class MainController {
                     public void write(com.google.gson.stream.JsonWriter out, java.time.LocalDateTime value) throws java.io.IOException {
                         out.value(value != null ? value.toString() : null);
                     }
-
                     @Override
                     public java.time.LocalDateTime read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
                         return java.time.LocalDateTime.parse(in.nextString());
@@ -278,25 +275,16 @@ public class MainController {
         if ("SUCCESS".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá " + newPrice + " USD cho sản phẩm: " + latestAuction.getItem().getName());
             txtBidAmount.clear(); 
-            
         } else if ("FAIL_INVALID_BIDDER".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Thông tin người đặt giá không hợp lệ.");
-        } else if ("FAIL_INVALID_AMOUNT".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Số tiền đặt giá không hợp lệ.");
-        } else if ("FAIL_NOT_STARTED".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá chưa bắt đầu.");
         } else if ("FAIL_NOT_RUNNING".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá hiện tại không hoạt động.");
         } else if ("FAIL_FINISHED".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Phiên đấu giá đã kết thúc.");
         } else if ("FAIL_TOO_LOW".equals(response)) {
             showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Giá đặt phải cao hơn giá hiện tại.");
-        } else if ("FAIL_UNKNOWN".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Thất bại", "Server từ chối đặt giá.");
-        } else if ("ERROR".equals(response)) {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi hệ thống", "Lỗi lưu dữ liệu. Vui lòng thử lại!");
         } else {
-            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server Đấu Giá. Hãy kiểm tra xem Server đã chạy chưa!");
+            showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi kết nối", "Từ chối đặt giá hoặc lỗi hệ thống mạng!");
         }
     }
 
@@ -313,18 +301,60 @@ public class MainController {
 
                 if (history.isEmpty()) {
                     showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", "Chưa có ai đặt giá cho sản phẩm này.");
-                } else {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("CHI TIẾT CÁC LƯỢT ĐẶT GIÁ:\n");
-                    sb.append("------------------------------------------\n");
-                    for (String line : history) {
-                        sb.append("🔹 ").append(line).append("\n\n");
-                    }
-                    showAlert(javafx.scene.control.Alert.AlertType.INFORMATION, "Lịch sử đấu giá", sb.toString());
+                    return;
                 }
+
+           
+                javafx.scene.chart.NumberAxis xAxis = new javafx.scene.chart.NumberAxis();
+                xAxis.setLabel("Lượt đặt giá");
+                xAxis.setForceZeroInRange(false);
+                xAxis.setTickUnit(1); 
+                xAxis.setMinorTickCount(0);
+
+               
+                javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
+                yAxis.setLabel("Mức giá (USD)");
+                yAxis.setForceZeroInRange(false);
+
+               
+                javafx.scene.chart.LineChart<Number, Number> lineChart = new javafx.scene.chart.LineChart<>(xAxis, yAxis);
+                lineChart.setTitle("📈 Biểu đồ lịch sử giá: " + auction.getItem().getName());
+                lineChart.setLegendVisible(false);
+
+                javafx.scene.chart.XYChart.Series<Number, Number> series = new javafx.scene.chart.XYChart.Series<>();
+
+                int turn = 1;
+                for (int i = history.size() - 1; i >= 0; i--) {
+                    String line = history.get(i);
+                    try {
+                       
+                        String[] parts = line.split("đã đặt");
+                        if (parts.length > 1) {
+                            String priceString = parts[1].trim().split(" ")[0]; // Lấy "1500.0"
+                            double priceVal = Double.parseDouble(priceString);
+                            series.getData().add(new javafx.scene.chart.XYChart.Data<>(turn++, priceVal));
+                        }
+                    } catch (Exception ex) {
+                    
+                    }
+                }
+
+                lineChart.getData().add(series);
+
+             
+                javafx.scene.Scene chartScene = new javafx.scene.Scene(lineChart, 700, 450);
+                chartScene.getStylesheets().add("data:text/css," + 
+                    ".chart-series-line { -fx-stroke: #2563eb; -fx-stroke-width: 3px; } " +
+                    ".chart-line-symbol { -fx-background-color: #f59e0b, white; -fx-background-radius: 5px; }");
+                
+                javafx.stage.Stage chartStage = new javafx.stage.Stage();
+                chartStage.setTitle("Biểu đồ biến động giá");
+                chartStage.setScene(chartScene);
+                chartStage.show();
+
             } catch (Exception e) {
                 e.printStackTrace();
-                showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi", "Không thể đọc dữ liệu lịch sử.");
+                showAlert(javafx.scene.control.Alert.AlertType.ERROR, "Lỗi", "Không thể hiển thị biểu đồ lịch sử.");
             }
         } else {
             showAlert(javafx.scene.control.Alert.AlertType.WARNING, "Thông báo", "Không nhận được phản hồi từ Server.");
@@ -346,41 +376,31 @@ public class MainController {
     @FXML
     public void handleLogout(ActionEvent event) {
         try {
-         
             NetworkClient.stopRealtimeListener();
-
             Session.setCurrentAccount(null);
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
-       
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
             stage.show();
-   
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể quay lại màn hình đăng nhập!");
         }
     }
 
     @FXML
     public void login(ActionEvent event) {
         try {
-            
             NetworkClient.stopRealtimeListener();
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Login.fxml"));
             Parent root = loader.load();
-
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng nhập");
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng nhập!");
         }
     }
 
@@ -388,19 +408,14 @@ public class MainController {
     public void signUp(ActionEvent event) {
         try {
             NetworkClient.stopRealtimeListener();
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Signup.fxml"));
             javafx.scene.Parent root = loader.load();
-
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-     
             stage.setScene(new Scene(root));
             stage.setTitle("Hệ thống Đấu giá - Đăng ký tài khoản");
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng ký!");
         }
     }
 
