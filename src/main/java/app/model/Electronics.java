@@ -18,6 +18,17 @@ public class Electronics extends Item {
         this.repairedParts = repairedParts;
     }
 
+    public Electronics(String id, String name, String description, double startingPrice, int warrantyMonths) {
+        super(id, name, description, startingPrice);
+        this.warrantyMonths = warrantyMonths;
+        this.condition = "Mới";
+        this.purchaseDate = "";
+        this.isRepaired = "Không";
+        this.repairDate = "";
+        this.repairedParts = "";
+    }
+
+
     public int getWarrantyMonths() {
         return warrantyMonths;
     }
