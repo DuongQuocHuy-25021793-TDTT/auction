@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
@@ -23,14 +25,24 @@
       </Label>
       
       <Label text="Loại sản phẩm:" />
-      <ComboBox fx:id="comboType" prefHeight="35.0" prefWidth="350.0" />
+      <ComboBox fx:id="comboType" prefHeight="35.0" prefWidth="350.0">
+          <items>
+              <FXCollections fx:factory="observableArrayList">
+                  <String fx:value="Art" />
+                  <String fx:value="Electronics" />
+                  <String fx:value="Vehicle" />
+              </FXCollections>
+          </items>
+          <value>
+              <String fx:value="Art" /> </value>
+      </ComboBox>
       
-      <TextField fx:id="txtName" prefHeight="35.0" promptText="Tên sản phẩm (VD: Tranh sơn dầu)" />
+      <TextField fx:id="txtName" prefHeight="35.0" promptText="Tên sản phẩm (VD: Tranh sơn dầu, Xe Ford)" />
       <TextField fx:id="txtDesc" prefHeight="35.0" promptText="Mô tả ngắn gọn" />
       <TextField fx:id="txtPrice" prefHeight="35.0" promptText="Giá khởi điểm (USD)" />
       
-      <TextField fx:id="txtExtra1" prefHeight="35.0" promptText="Thông tin phụ 1" />
-      <TextField fx:id="txtExtra2" prefHeight="35.0" promptText="Thông tin phụ 2" />
+      <TextField fx:id="txtExtra1" prefHeight="35.0" promptText="Thông tin phụ 1 (Tác giả / Hãng / v.v...)" />
+      <TextField fx:id="txtExtra2" prefHeight="35.0" promptText="Thông tin phụ 2 (Năm / Bảo hành / v.v...)" />
       
       <VBox VBox.vgrow="ALWAYS" />
       
