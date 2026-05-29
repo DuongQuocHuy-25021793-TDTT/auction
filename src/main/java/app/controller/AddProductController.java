@@ -8,6 +8,7 @@ import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
 import app.model.Item;
+import app.model.Vehicle;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -46,7 +47,7 @@ public class AddProductController {
         }
     }
 
-    @FXML
+   @FXML
     public void handleSave(ActionEvent event) {
         try {
             String type = comboType.getValue();
@@ -61,19 +62,28 @@ public class AddProductController {
             double price = Double.parseDouble(txtPrice.getText());
             Item newItem;
             
- 
             String itemId = "I_" + UUID.randomUUID().toString().substring(0, 5);
 
-            if ("Nghệ thuật".equals(type)) {
+            if ("Nghệ thuật".equals(type) || "Art".equals(type)) {
                 String artist = txtExtra1.getText();
                 int year = Integer.parseInt(txtExtra2.getText().isEmpty() ? "0" : txtExtra2.getText());
                 newItem = new Art(itemId, name, desc, price, artist, year);
-            } else {
+                
+            } else if ("Điện tử".equals(type) || "Electronics".equals(type)) {
                 int warranty = Integer.parseInt(txtExtra1.getText().isEmpty() ? "0" : txtExtra1.getText());
                 newItem = new Electronics(itemId, name, desc, price, warranty);
+                
+            } else if ("Phương tiện".equals(type) || "Vehicle".equals(type)) {
+               
+                String brand = txtExtra1.getText();
+                int year = Integer.parseInt(txtExtra2.getText().isEmpty() ? "0" : txtExtra2.getText());
+                newItem = new Vehicle(itemId, name, desc, price, brand, year);
+                
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Loại sản phẩm không hợp lệ!");
+                return;
             }
 
-           
             String auctionId = "A_" + UUID.randomUUID().toString().substring(0, 5);
             Auction newAuction = new Auction(auctionId, newItem, 
                     LocalDateTime.now(), LocalDateTime.now().plusMinutes(10), price, "RUNNING");
@@ -82,7 +92,7 @@ public class AddProductController {
 
             if (success) {
                 showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã đưa sản phẩm lên sàn đấu giá!");
-               
+                
                 Stage stage = (Stage) txtName.getScene().getWindow();
                 stage.close();
             } else {
@@ -90,7 +100,7 @@ public class AddProductController {
             }
 
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi nhập liệu", "Giá tiền, Năm sáng tác hoặc Bảo hành phải là SỐ!");
+            showAlert(Alert.AlertType.ERROR, "Lỗi nhập liệu", "Giá tiền, Năm sản xuất hoặc Bảo hành phải là SỐ!");
         }
     }
 
