@@ -2,6 +2,10 @@ package app.model;
 
 public enum AccountRole {
     ADMIN,
-    DEV,
-    GUEST
+    SELLER,
+    BIDDER;
+
+    public boolean canSelfRegister() {
+        return this == SELLER || this == BIDDER;
+    }
 }

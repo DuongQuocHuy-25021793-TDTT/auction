@@ -5,10 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+import com.google.gson.Gson;
+
 import app.database.AppDatabase;
 import app.database.Session;
 import app.model.Art;
 import app.model.Auction;
+import app.model.AuctionProposalRequest;
+import app.model.BidTransaction;
+import app.model.Bidder;
 import app.model.Electronics;
 import app.network.ClientConnection;
 import app.network.NetworkClient;
@@ -20,19 +26,26 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField; 
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class MainController {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final double[] QUICK_BID_INCREMENTS = { 500, 1000, 2000, 5000 };
+    private static List<Auction> demoAuctions = null;
 
     @FXML private FlowPane itemContainer;
     @FXML private Button loginButton;
@@ -42,6 +55,41 @@ public class MainController {
     @FXML private TextField searchField;
 
     private List<Timeline> activeTimelines = new ArrayList<>();
+
+    @FXML
+    private Button loginButton;
+
+    @FXML
+    private Button signUpButton;
+
+    @FXML
+    private Button requestProductButton;
+
+    @FXML
+    private Button createAuctionButton;
+
+    @FXML private Button logoutButton;
+    @FXML private Button btnAll, btnArt, btnElec, btnVeh;
+    private String currentFilterType = null;
+
+    @FXML
+    private TextField searchField;
+
+    private final AppDatabase database = AppDatabase.getInstance();
+
+    private final Gson gson = new com.google.gson.GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new com.google.gson.TypeAdapter<LocalDateTime>() {
+                @Override
+                public void write(com.google.gson.stream.JsonWriter out, LocalDateTime value)
+                        throws java.io.IOException {
+                    out.value(value != null ? value.toString() : null);
+                }
+
+                @Override
+                public LocalDateTime read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
+                    return LocalDateTime.parse(in.nextString());
+                }
+            }).create();
 
     @FXML
     public void initialize() {
@@ -126,17 +174,23 @@ public class MainController {
     }
 
     @FXML
-    public void handleShowArt(ActionEvent event) {
-        List<Auction> arts = AppDatabase.getInstance().getAuctions().stream()
-                .filter(a -> a.getItem() instanceof Art).collect(Collectors.toList());
-        loadAuctionsToUI(arts);
+    public void login() {
+        openScene("/app/Login.fxml");
     }
 
     @FXML
-    public void handleShowElectronics(ActionEvent event) {
-        List<Auction> elecs = AppDatabase.getInstance().getAuctions().stream()
-                .filter(a -> a.getItem() instanceof Electronics).collect(Collectors.toList());
-        loadAuctionsToUI(elecs);
+    public void signUp() {
+        openScene("/app/Signup.fxml");
+    }
+
+    @FXML
+    public void handleSearch(ActionEvent event) {
+        String keyword = searchField.getText().toLowerCase();
+        List<Auction> filtered = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem().getName().toLowerCase().contains(keyword) ||
+                             a.getItem().getDescription().toLowerCase().contains(keyword))
+                .collect(Collectors.toList());
+        loadAuctionsToUI(filtered);
     }
 
     private void loadAuctionsToUI(List<Auction> auctions) {
@@ -146,17 +200,21 @@ public class MainController {
         activeTimelines.clear();
         itemContainer.getChildren().clear(); 
 
-        for (Auction auction : auctions) {
-            VBox card = new VBox(10);
-            card.setPadding(new Insets(15));
-            card.setStyle("-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
-            card.setPrefWidth(250);
+    public void handleRequestProduct() {
+        User user = Session.getCurrentUser();
+        if (!(user instanceof Bidder)) {
+            showAlert(Alert.AlertType.WARNING, "Không đủ quyền", "Chỉ tài khoản Bidder được gửi yêu cầu sản phẩm mới.");
+            return;
+        }
 
-            Label nameLbl = new Label(auction.getItem().getName());
-            nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+        // Bước 1: Xác nhận thông tin cá nhân của Bidder trước khi tạo yêu cầu.
+        if (!confirmPersonalInfo((Bidder) user)) {
+            return;
+        }
 
-            Label priceLbl = new Label("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-            priceLbl.setStyle("-fx-text-fill: #d97706; -fx-font-weight: bold;");
+        // Bước 2: Mở form yêu cầu sản phẩm chi tiết.
+        showProductRequestForm((Bidder) user);
+    }
 
             Label timeLbl = new Label();
             timeLbl.setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
@@ -362,15 +420,9 @@ public class MainController {
     }
 
     @FXML
-    public void handleOpenAddProduct(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/AddProduct.fxml"));
-            Stage stage = new Stage();
-            stage.setTitle("Thêm Sản Phẩm Mới");
-            stage.setScene(new Scene(loader.load()));
-            stage.showAndWait(); 
-            handleShowAll(null); 
-        } catch (IOException e) { e.printStackTrace(); }
+    void handleLogout(ActionEvent event) {
+        Session.clear();
+        openScene("/app/Main.fxml");
     }
 
     @FXML

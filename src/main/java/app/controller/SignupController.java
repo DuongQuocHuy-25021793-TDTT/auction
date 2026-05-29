@@ -9,9 +9,11 @@ import com.google.gson.Gson;
 
 import app.model.Message;
 import javafx.animation.PauseTransition;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -33,11 +35,20 @@ public class SignupController {
     private PasswordField confirmPasswordField;
 
     @FXML
+    private ComboBox<AccountRole> roleComboBox;
+
+    @FXML
     private Label errorLabel;
 
 
     private final int SERVER_PORT = 8080;
     private final String SERVER_IP = "localhost";
+
+    @FXML
+    public void initialize() {
+        roleComboBox.setItems(FXCollections.observableArrayList(AccountRole.BIDDER, AccountRole.SELLER));
+        roleComboBox.setValue(AccountRole.BIDDER);
+    }
 
     @FXML
     public void handleRegisterAction() {
@@ -46,9 +57,13 @@ public class SignupController {
         String password = passwordField.getText();
         String confirmPassword = confirmPasswordField.getText();
 
-
         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showMessage("Vui lòng nhập đầy đủ thông tin!", "red");
+            return;
+        }
+
+        if (selectedRole == null || !selectedRole.canSelfRegister()) {
+            showMessage("Chỉ được đăng ký tài khoản Bidder hoặc Seller!", "red");
             return;
         }
 
@@ -90,6 +105,14 @@ public class SignupController {
     @FXML
     public void handleGoToLogin() {
         goBackToLogin();
+    }
+
+    private User createUser(AccountRole role, String username, String password) {
+        String id = "U_" + UUID.randomUUID();
+        if (role == AccountRole.SELLER) {
+            return new Seller(id, username, password);
+        }
+        return new Bidder(id, username, password);
     }
 
     private void showMessage(String message, String color) {

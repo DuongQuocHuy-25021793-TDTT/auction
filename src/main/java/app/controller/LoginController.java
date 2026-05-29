@@ -8,9 +8,13 @@ import java.net.Socket;
 import com.google.gson.Gson;
 
 import app.database.Session;
+<<<<<<< HEAD
 import app.model.Account;
 import app.model.AccountRole;
 import app.model.Message;
+=======
+import app.model.User;
+>>>>>>> 62e7f1b4cd5f9d55feb4c4da53dcc3c0b9e83c12
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -77,6 +81,12 @@ public class LoginController {
                 statusLabel.setStyle("-fx-text-fill: red;");
             }
 
+<<<<<<< HEAD
+=======
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("Auction System - " + user.getRole());
+>>>>>>> 62e7f1b4cd5f9d55feb4c4da53dcc3c0b9e83c12
         } catch (Exception e) {
             e.printStackTrace();
             statusLabel.setText("Không thể kết nối đến Server. Hãy kiểm tra xem Server đã chạy chưa!");
