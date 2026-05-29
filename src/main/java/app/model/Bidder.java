@@ -28,7 +28,8 @@ public class Bidder extends User {
                 auction.getId(),
                 getId(),
                 amount,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                username
         );
 
         boolean success = auction.placeBid(bid);

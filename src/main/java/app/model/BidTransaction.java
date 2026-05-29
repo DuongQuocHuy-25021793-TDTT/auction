@@ -7,13 +7,15 @@ public class BidTransaction extends Entity {
     private String bidderId;
     private double bidAmount;
     private LocalDateTime timestamp;
+    private String Username;
 
-    public BidTransaction(String id, String auctionId, String bidderId, double bidAmount, LocalDateTime timestamp) {
+    public BidTransaction(String id, String auctionId, String bidderId, double bidAmount, LocalDateTime timestamp, String Username) {
         super(id);
         this.auctionId = auctionId;
         this.bidderId = bidderId;
         this.bidAmount = bidAmount;
         this.timestamp = timestamp;
+        this.Username = Username;
     }
 
     public String getAuctionId() {
@@ -46,5 +48,9 @@ public class BidTransaction extends Entity {
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getUsername() {
+        return Username;
     }
 }
