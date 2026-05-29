@@ -33,3 +33,4 @@ target/
 out/
 *.db
 *.json 
+auction_app.db
