@@ -17,6 +17,7 @@ import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
 import app.model.Item;
+import app.model.Message;
 
 public class AppDatabase {
     private static final AppDatabase INSTANCE = new AppDatabase();
@@ -27,23 +28,21 @@ public class AppDatabase {
         if (getAccounts().isEmpty()) seedAccounts();
         if (getAuctions().isEmpty()) seedInventory();
         
-       
         startAuctionMonitor();
     }
 
-    public static AppDatabase getInstance() { return INSTANCE; }
+    public static AppDatabase getInstance() { 
+        return INSTANCE; 
+    }
 
     private Connection connect() throws SQLException {
         return DriverManager.getConnection(DB_URL);
     }
 
-
     private void createTables() {
         String sqlAccounts = "CREATE TABLE IF NOT EXISTS Accounts (username TEXT PRIMARY KEY, password TEXT, role TEXT);";
         String sqlItems = "CREATE TABLE IF NOT EXISTS Items (id TEXT PRIMARY KEY, type TEXT, name TEXT, description TEXT, startingPrice REAL, artist TEXT, creationYear INTEGER, warrantyMonths INTEGER);";
         String sqlAuctions = "CREATE TABLE IF NOT EXISTS Auctions (id TEXT PRIMARY KEY, item_id TEXT, startTime TEXT, stopTime TEXT, currentHighestPrice REAL, status TEXT, FOREIGN KEY(item_id) REFERENCES Items(id));";
-        
-   
         String sqlBids = "CREATE TABLE IF NOT EXISTS Bids (id TEXT PRIMARY KEY, auction_id TEXT, username TEXT, bidAmount REAL, bidTime TEXT, FOREIGN KEY(auction_id) REFERENCES Auctions(id), FOREIGN KEY(username) REFERENCES Accounts(username));";
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
@@ -51,8 +50,11 @@ public class AppDatabase {
             stmt.execute(sqlItems);
             stmt.execute(sqlAuctions);
             stmt.execute(sqlBids);
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
     }
+
     private void seedAccounts() {
         addAccount(new Account("U_ADMIN", "admin", "admin123", AccountRole.ADMIN));
         addAccount(new Account("U_GUEST", "guest", "guest123", AccountRole.GUEST));
@@ -73,7 +75,9 @@ public class AppDatabase {
             pstmt.setString(3, account.getRole().name());
             pstmt.executeUpdate();
             return true;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
     public synchronized boolean usernameExists(String username) {
@@ -81,14 +85,20 @@ public class AppDatabase {
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username.toLowerCase());
             return pstmt.executeQuery().next();
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
     public synchronized List<Account> getAccounts() {
         List<Account> list = new ArrayList<>();
         try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM Accounts")) {
-            while (rs.next()) list.add(new Account("", rs.getString("username"), rs.getString("password"), AccountRole.valueOf(rs.getString("role"))));
-        } catch (SQLException e) { e.printStackTrace(); }
+            while (rs.next()) {
+                list.add(new Account(rs.getString("username"), rs.getString("username"), rs.getString("password"), AccountRole.valueOf(rs.getString("role"))));
+            }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
         return list;
     }
 
@@ -100,12 +110,21 @@ public class AppDatabase {
             pstmt.setString(4, item.getDescription());
             pstmt.setDouble(5, item.getStartingPrice());
             if (item instanceof Art) {
-                pstmt.setString(2, "ART"); pstmt.setString(6, ((Art) item).getArtist()); pstmt.setInt(7, ((Art) item).getCreationYear()); pstmt.setNull(8, Types.INTEGER);
+                pstmt.setString(2, "ART"); 
+                pstmt.setString(6, ((Art) item).getArtist()); 
+                pstmt.setInt(7, ((Art) item).getCreationYear()); 
+                pstmt.setNull(8, Types.INTEGER);
             } else if (item instanceof Electronics) {
-                pstmt.setString(2, "ELEC"); pstmt.setNull(6, Types.VARCHAR); pstmt.setNull(7, Types.INTEGER); pstmt.setInt(8, ((Electronics) item).getWarrantyMonths());
+                pstmt.setString(2, "ELEC"); 
+                pstmt.setNull(6, Types.VARCHAR); 
+                pstmt.setNull(7, Types.INTEGER); 
+                pstmt.setInt(8, ((Electronics) item).getWarrantyMonths());
             }
-            pstmt.executeUpdate(); return true;
-        } catch (SQLException e) { return false; }
+            pstmt.executeUpdate(); 
+            return true;
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
     public synchronized Item findItemById(String itemId) {
@@ -115,32 +134,105 @@ public class AppDatabase {
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 String type = rs.getString("type");
-                if ("ART".equals(type)) return new Art(rs.getString("id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getString("artist"), rs.getInt("creationYear"));
-                else return new Electronics(rs.getString("id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getInt("warrantyMonths"));
+                if ("ART".equals(type)) {
+                    return new Art(rs.getString("id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getString("artist"), rs.getInt("creationYear"));
+                } else {
+                    return new Electronics(rs.getString("id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getInt("warrantyMonths"));
+                }
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
         return null;
     }
 
     public synchronized boolean addAuction(Auction auction) {
-        if (findItemById(auction.getItem().getId()) == null) addItem(auction.getItem());
+        if (findItemById(auction.getItem().getId()) == null) {
+            addItem(auction.getItem());
+        }
         String sql = "INSERT INTO Auctions (id, item_id, startTime, stopTime, currentHighestPrice, status) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, auction.getId()); pstmt.setString(2, auction.getItem().getId());
-            pstmt.setString(3, auction.getStartTime().toString()); pstmt.setString(4, auction.getStopTime().toString());
-            pstmt.setDouble(5, auction.getCurrentHighestPrice()); pstmt.setString(6, auction.getStatus());
-            pstmt.executeUpdate(); return true;
-        } catch (SQLException e) { return false; }
+            pstmt.setString(1, auction.getId()); 
+            pstmt.setString(2, auction.getItem().getId());
+            pstmt.setString(3, auction.getStartTime().toString()); 
+            pstmt.setString(4, auction.getStopTime().toString());
+            pstmt.setDouble(5, auction.getCurrentHighestPrice()); 
+            pstmt.setString(6, auction.getStatus());
+            pstmt.executeUpdate(); 
+            return true;
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
+    /**
+     * ĐÃ TỐI ƯU HÓA: Dùng INNER JOIN để lấy cả thông tin đấu giá và sản phẩm cùng một lúc,
+     * loại bỏ hoàn toàn việc tạo Connection lặp đi lặp lại lỗi bộ nhớ.
+     */
     public synchronized List<Auction> getAuctions() {
         List<Auction> list = new ArrayList<>();
-        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM Auctions")) {
+        String sql = "SELECT a.id AS auc_id, a.startTime, a.stopTime, a.currentHighestPrice, a.status, " +
+                     "i.id AS item_id, i.type, i.name, i.description, i.startingPrice, i.artist, i.creationYear, i.warrantyMonths " +
+                     "FROM Auctions a INNER JOIN Items i ON a.item_id = i.id";
+                     
+        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                list.add(new Auction(rs.getString("id"), findItemById(rs.getString("item_id")), LocalDateTime.parse(rs.getString("startTime")), LocalDateTime.parse(rs.getString("stopTime")), rs.getDouble("currentHighestPrice"), rs.getString("status")));
+                String type = rs.getString("type");
+                Item item;
+                if ("ART".equals(type)) {
+                    item = new Art(rs.getString("item_id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getString("artist"), rs.getInt("creationYear"));
+                } else {
+                    item = new Electronics(rs.getString("item_id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getInt("warrantyMonths"));
+                }
+                
+                list.add(new Auction(
+                    rs.getString("auc_id"), 
+                    item, 
+                    LocalDateTime.parse(rs.getString("startTime")), 
+                    LocalDateTime.parse(rs.getString("stopTime")), 
+                    rs.getDouble("currentHighestPrice"), 
+                    rs.getString("status")
+                ));
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
         return list;
+    }
+
+    /**
+     * ĐÃ TỐI ƯU HÓA: Tìm kiếm phiên đấu giá đi kèm sản phẩm bằng cú pháp JOIN siêu tốc.
+     */
+    public synchronized Auction findAuctionById(String auctionId) {
+        String sql = "SELECT a.id AS auc_id, a.startTime, a.stopTime, a.currentHighestPrice, a.status, " +
+                     "i.id AS item_id, i.type, i.name, i.description, i.startingPrice, i.artist, i.creationYear, i.warrantyMonths " +
+                     "FROM Auctions a INNER JOIN Items i ON a.item_id = i.id WHERE a.id = ?";
+                     
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, auctionId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String type = rs.getString("type");
+                Item item;
+                if ("ART".equals(type)) {
+                    item = new Art(rs.getString("item_id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getString("artist"), rs.getInt("creationYear"));
+                } else {
+                    item = new Electronics(rs.getString("item_id"), rs.getString("name"), rs.getString("description"), rs.getDouble("startingPrice"), rs.getInt("warrantyMonths"));
+                }
+                
+                return new Auction(
+                    rs.getString("auc_id"),
+                    item,
+                    LocalDateTime.parse(rs.getString("startTime")),
+                    LocalDateTime.parse(rs.getString("stopTime")),
+                    rs.getDouble("currentHighestPrice"),
+                    rs.getString("status")
+                );
+            }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
+        return null; 
     }
 
     public synchronized boolean placeBid(String auctionId, String username, double amount) {
@@ -154,10 +246,14 @@ public class AppDatabase {
             pstmt.executeUpdate();
 
             try (PreparedStatement updateStmt = conn.prepareStatement("UPDATE Auctions SET currentHighestPrice = ? WHERE id = ?")) {
-                updateStmt.setDouble(1, amount); updateStmt.setString(2, auctionId); updateStmt.executeUpdate();
+                updateStmt.setDouble(1, amount); 
+                updateStmt.setString(2, auctionId); 
+                updateStmt.executeUpdate();
             }
             return true;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
     public synchronized boolean updateAuctionStatus(String auctionId, String status) {
@@ -167,10 +263,11 @@ public class AppDatabase {
             pstmt.setString(2, auctionId);
             pstmt.executeUpdate();
             return true;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
-    
     public synchronized boolean updateAuctionStopTime(String auctionId, LocalDateTime newStopTime) {
         String sql = "UPDATE Auctions SET stopTime = ? WHERE id = ?";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -178,7 +275,9 @@ public class AppDatabase {
             pstmt.setString(2, auctionId);
             pstmt.executeUpdate();
             return true;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) { 
+            return false; 
+        }
     }
 
     public synchronized List<String> getBidHistory(String auctionId) {
@@ -190,43 +289,21 @@ public class AppDatabase {
             while (rs.next()) {
                 history.add(rs.getString("username") + " đã đặt " + rs.getDouble("bidAmount") + " USD lúc " + rs.getString("bidTime").replace("T", " "));
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) { 
+            e.printStackTrace(); 
+        }
         return history;
     }
+
     public synchronized Account authenticate(String username, String password) {
         String sql = "SELECT * FROM Accounts WHERE username = ? AND password = ?";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-           
             pstmt.setString(1, username.toLowerCase()); 
             pstmt.setString(2, password);
             
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-              
-                return new Account("", rs.getString("username"), rs.getString("password"), AccountRole.valueOf(rs.getString("role")));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null; 
-    }
-    public synchronized Auction findAuctionById(String auctionId) {
-        String sql = "SELECT * FROM Auctions WHERE id = ?";
-        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, auctionId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-         
-                Item item = findItemById(rs.getString("item_id"));
-                
-                return new Auction(
-                        rs.getString("id"),
-                        item,
-                        LocalDateTime.parse(rs.getString("startTime")),
-                        LocalDateTime.parse(rs.getString("stopTime")),
-                        rs.getDouble("currentHighestPrice"),
-                        rs.getString("status")
-                );
+                return new Account(rs.getString("username"), rs.getString("username"), rs.getString("password"), AccountRole.valueOf(rs.getString("role")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -234,9 +311,9 @@ public class AppDatabase {
         return null; 
     }
 
-   
     public void startAuctionMonitor() {
         Thread monitorThread = new Thread(() -> {
+            com.google.gson.Gson gson = new com.google.gson.Gson();
             while (true) {
                 try {
                     Thread.sleep(5000); 
@@ -247,14 +324,26 @@ public class AppDatabase {
                         if ("RUNNING".equalsIgnoreCase(auction.getStatus()) && 
                             LocalDateTime.now().isAfter(auction.getStopTime())) {
                             
-
                             updateAuctionStatus(auction.getId(), "FINISHED");
                             
+                            List<String> bidHistory = getBidHistory(auction.getId());
+                            String winner = "Không có";
+                            if (bidHistory != null && !bidHistory.isEmpty()) {
+                                String topBid = bidHistory.get(0); 
+                                winner = topBid.split(" ")[0]; 
+                            }
+                            
                             System.out.println("=====================================");
-                            System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC: " + auction.getItem().getName());
+                            System.out.println(">>> PHIÊN ĐẤU GIÁ KẾT THÚC TỰ ĐỘNG: " + auction.getItem().getName());
                             System.out.println(">>> TRẠNG THÁI ĐÃ ĐƯỢC CHỐT SỔ THÀNH CÔNG");
-                            app.network.Server.broadcast("AUCTION_CLOSED|" + auction.getId() + "|" + auction.getHighestBidderId() + "|" + auction.getCurrentHighestPrice());
+                            System.out.println(">>> Người thắng: " + winner + " | Giá chốt: " + auction.getCurrentHighestPrice() + " USD");
                             System.out.println("=====================================\n");
+                            
+                            String broadcastData = auction.getId() + "|" + winner + "|" + auction.getCurrentHighestPrice();
+                            Message jsonMessage = new Message("AUCTION_CLOSED", broadcastData);
+                            
+                            // Gọi cơ chế phát sóng tới các client
+                            app.network.Server.broadcast(gson.toJson(jsonMessage));
                         }
                     }
                 } catch (InterruptedException e) {

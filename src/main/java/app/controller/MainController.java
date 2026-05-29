@@ -10,6 +10,7 @@ import app.database.Session;
 import app.model.Art;
 import app.model.Auction;
 import app.model.Electronics;
+import app.model.Vehicle;
 import app.network.ClientConnection;
 import app.network.NetworkClient;
 import javafx.animation.Animation;
@@ -64,40 +65,95 @@ public class MainController {
             handleShowAll(null);
         });
 
+        // =========================================================================
+        // ĐÃ TÍCH HỢP 2 BƯỚC: Bóc tách chuỗi dữ liệu Chốt phiên và Hiển thị UI vinh danh
+        // =========================================================================
         ClientConnection.getInstance().setMessageListener(message -> {
-        
-            if (message != null && message.startsWith("AUCTION_CLOSED")) {
-                String[] parts = message.split("\\|");
-                if (parts.length >= 4) {
-                    String auctionId = parts[1];
-                    String winner = parts[2];
-                    String price = parts[3];
+            if (message == null || message.trim().isEmpty()) return;
+            
+            try {
+                com.google.gson.Gson gson = new com.google.gson.Gson();
+                app.model.Message msgObj = gson.fromJson(message, app.model.Message.class);
+                
+                if (msgObj != null) {
+                    if ("AUCTION_CLOSED".equals(msgObj.getAction())) {
+                        
+                        // Bóc tách dữ liệu: Mã_Phiên|Người_Thắng|Giá_Chốt
+                        String rawData = msgObj.getData(); 
+                        String[] parts = rawData.split("\\|");
+                        
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("Thông báo chốt đơn");
+                            
+                            if (parts.length >= 3) {
+                                String auctionId = parts[0];
+                                String winner = parts[1];
+                                String finalPrice = parts[2];
+                                
+                                alert.setHeaderText("PHIÊN ĐẤU GIÁ [" + auctionId + "] ĐÃ KHÉP LẠI!");
+                                
+                                if ("Không có".equals(winner) || "null".equals(winner) || winner.isEmpty()) {
+                                    alert.setContentText("Phiên đấu giá kết thúc mà không có ai tham gia trả giá.");
+                                } else {
+                                    alert.setContentText("Chúc mừng người dùng [" + winner + "] đã đấu giá thành công sản phẩm với mức giá cuối cùng là: " + finalPrice + " USD!");
+                                }
+                            } else {
+                                // Fallback dự phòng nếu server gửi chuỗi cũ
+                                alert.setHeaderText("Phiên đấu giá đã kết thúc!");
+                                alert.setContentText("Phiên đấu giá đã khép lại thành công (Hệ thống tự động hoặc Admin chốt sổ).\nDanh sách hiển thị sẽ được làm mới.");
+                            }
+                            
+                            alert.showAndWait();
+                            handleShowAll(null); // Tải lại toàn bộ thẻ giao diện, hàm loadAuctionsToUI sẽ tự động khóa nút
+                        });
+                    } 
+                    else if ("TIME_EXTENDED".equals(msgObj.getAction())) {
+                        String auctionId = msgObj.getData();
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("⏱️ Gia hạn chống bắn tỉa");
+                            alert.setHeaderText("Phiên đấu giá [" + auctionId + "] đang rất nóng!");
+                            alert.setContentText("Có người vừa đặt giá ở những giây cuối cùng. Hệ thống đã tự động gia hạn thêm 1 phút!");
+                            alert.show(); 
+                            handleShowAll(null); 
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                // Fallback cũ khi message không phải JSON
+                if (message.startsWith("AUCTION_CLOSED")) {
+                    String[] parts = message.split("\\|");
+                    if (parts.length >= 4) {
+                        String auctionId = parts[1];
+                        String winner = parts[2];
+                        String price = parts[3];
 
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("Thông báo chốt đơn");
+                            alert.setHeaderText("Phiên đấu giá " + auctionId + " đã kết thúc!");
+                            
+                            if (winner.equals("null") || winner.isEmpty() || winner.equals("Không có")) {
+                                alert.setContentText("Rất tiếc, không có ai đặt giá cho sản phẩm này.");
+                            } else {
+                                alert.setContentText("Người chiến thắng: " + winner + "\nVới mức giá: " + price + " USD");
+                            }
+                            alert.showAndWait();
+                            handleShowAll(null);
+                        });
+                    }
+                }
+                else if (message.startsWith("TIME_EXTENDED")) {
                     Platform.runLater(() -> {
                         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                        alert.setTitle("🎉 Thông báo chốt đơn");
-                        alert.setHeaderText("Phiên đấu giá " + auctionId + " đã kết thúc!");
-                        
-                        if (winner.equals("null") || winner.isEmpty()) {
-                            alert.setContentText("Rất tiếc, không có ai đặt giá cho sản phẩm này.");
-                        } else {
-                            alert.setContentText("Người chiến thắng: " + winner + "\nVới mức giá: " + price + " USD");
-                        }
-                        alert.showAndWait();
-                        handleShowAll(null);
+                        alert.setTitle("⏱️ Gia hạn chống bắn tỉa");
+                        alert.setHeaderText("Phiên đấu giá đang rất nóng!");
+                        alert.setContentText("Có người vừa đặt giá ở những giây cuối cùng. Hệ thống đã tự động gia hạn thêm 1 phút!");
+                        alert.show(); 
+                        handleShowAll(null); 
                     });
                 }
-            }
-           
-            else if (message != null && message.startsWith("TIME_EXTENDED")) {
-                Platform.runLater(() -> {
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("⏱️ Gia hạn chống bắn tỉa");
-                    alert.setHeaderText("Phiên đấu giá đang rất nóng!");
-                    alert.setContentText("Có người vừa đặt giá ở những giây cuối cùng. Hệ thống đã tự động gia hạn thêm 1 phút!");
-                    alert.show(); 
-                    handleShowAll(null); 
-                });
             }
         });
     }
@@ -139,6 +195,13 @@ public class MainController {
         loadAuctionsToUI(elecs);
     }
 
+    @FXML
+    public void handleShowVehicle(ActionEvent event) {
+        List<Auction> vehicles = AppDatabase.getInstance().getAuctions().stream()
+                .filter(a -> a.getItem() instanceof Vehicle).collect(Collectors.toList());
+        loadAuctionsToUI(vehicles);
+    }
+
     private void loadAuctionsToUI(List<Auction> auctions) {
         for (Timeline t : activeTimelines) {
             t.stop();
@@ -165,33 +228,68 @@ public class MainController {
             txtBidAmount.setPromptText("Nhập giá bạn muốn đặt...");
             txtBidAmount.setStyle("-fx-background-radius: 5; -fx-border-radius: 5; -fx-border-color: #cbd5e1;");
             txtBidAmount.setMaxWidth(Double.MAX_VALUE);
-            if (auction.getRemainingTime() <= 0) {
-                txtBidAmount.setDisable(true);
-            }
 
             Button bidBtn = new Button("Đặt giá ngay");
             bidBtn.setStyle("-fx-background-color: #22c55e; -fx-text-fill: white; -fx-background-radius: 5;");
             bidBtn.setMaxWidth(Double.MAX_VALUE);
             bidBtn.setOnAction(e -> handleBid(auction, txtBidAmount)); 
             
+            Button historyBtn = new Button("Xem lịch sử đặt giá");
+            historyBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 5;");
+            historyBtn.setMaxWidth(Double.MAX_VALUE);
+            historyBtn.setOnAction(e -> handleViewHistory(auction));
+
+            Button btnForceClose = new Button("🛑 Chốt phiên ngay");
+            btnForceClose.setStyle("-fx-background-color: #ef4444; -fx-text-fill: white; -fx-background-radius: 5; -fx-font-weight: bold;");
+            btnForceClose.setMaxWidth(Double.MAX_VALUE);
+            btnForceClose.setOnAction(e -> handleForceCloseAuction(auction));
+
+            btnForceClose.setVisible(false);
+            btnForceClose.setManaged(false);
+
+            if (Session.isLoggedIn() && Session.getCurrentAccount() != null) {
+                String currentUsername = Session.getCurrentAccount().getUsername();
+                if ("admin".equals(currentUsername)) {
+                    btnForceClose.setVisible(true);
+                    btnForceClose.setManaged(true);
+                }
+            }
+
+            // =========================================================================
+            // ĐÃ SỬA: Đảm bảo khóa nút bấm khi trạng thái phiên trong DB đã là FINISHED 
+            // (kể cả khi bộ đếm thời gian do công thức tính ra vẫn > 0 do Admin ép chốt sớm)
+            // =========================================================================
+            boolean isFinished = "FINISHED".equals(auction.getStatus()) || auction.getRemainingTime() <= 0;
+
+            if (isFinished) {
+                txtBidAmount.setDisable(true);
+                bidBtn.setDisable(true);
+                bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
+                btnForceClose.setDisable(true);
+                timeLbl.setText("⏳ Đã kết thúc");
+            }
+
             long[] remainingSeconds = { auction.getRemainingTime() };
             Runnable updateLabel = () -> {
-                if (remainingSeconds[0] <= 0) {
-                    timeLbl.setText("⏳ Đã kết thúc");
-                    bidBtn.setDisable(true); 
-                    bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
-                    txtBidAmount.setDisable(true); 
-                } else {
-                    long hours = remainingSeconds[0] / 3600;
-                    long minutes = (remainingSeconds[0] % 3600) / 60;
-                    long seconds = remainingSeconds[0] % 60;
-                    timeLbl.setText(String.format("⏳ Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+                if (!isFinished) {
+                    if (remainingSeconds[0] <= 0) {
+                        timeLbl.setText("⏳ Đã kết thúc");
+                        bidBtn.setDisable(true); 
+                        bidBtn.setStyle("-fx-background-color: #9ca3af; -fx-text-fill: white; -fx-background-radius: 5;");
+                        txtBidAmount.setDisable(true); 
+                        btnForceClose.setDisable(true);
+                    } else {
+                        long hours = remainingSeconds[0] / 3600;
+                        long minutes = (remainingSeconds[0] % 3600) / 60;
+                        long seconds = remainingSeconds[0] % 60;
+                        timeLbl.setText(String.format("⏳ Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+                    }
                 }
             };
 
             updateLabel.run(); 
 
-            if (remainingSeconds[0] > 0) {
+            if (!isFinished && remainingSeconds[0] > 0) {
                 Timeline timeline = new Timeline(
                     new KeyFrame(Duration.seconds(1), event -> {
                         remainingSeconds[0]--;
@@ -203,14 +301,38 @@ public class MainController {
                 activeTimelines.add(timeline); 
             }
             
-            Button historyBtn = new Button("Xem lịch sử đặt giá");
-            historyBtn.setStyle("-fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 5;");
-            historyBtn.setMaxWidth(Double.MAX_VALUE);
-            historyBtn.setOnAction(e -> handleViewHistory(auction));
-
-            card.getChildren().addAll(nameLbl, priceLbl, timeLbl, txtBidAmount, bidBtn, historyBtn);
+            card.getChildren().addAll(nameLbl, priceLbl, timeLbl, txtBidAmount, bidBtn, historyBtn, btnForceClose);
             itemContainer.getChildren().add(card);
         }
+    }
+
+    private void handleForceCloseAuction(Auction auction) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, 
+                "Bạn có chắc chắn muốn kết thúc phiên đấu giá này ngay lập tức?", 
+                javafx.scene.control.ButtonType.YES, javafx.scene.control.ButtonType.NO);
+        confirm.setTitle("Xác nhận chốt phiên");
+        confirm.setHeaderText("Sản phẩm: " + auction.getItem().getName());
+
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == javafx.scene.control.ButtonType.YES) {
+                try {
+                    app.model.Message msg = new app.model.Message("FORCE_CLOSE", auction.getId());
+                    com.google.gson.Gson gson = new com.google.gson.Gson();
+                    String jsonMsg = gson.toJson(msg);
+                    
+                    String serverResponse = app.network.NetworkClient.sendRequest(jsonMsg);
+                    
+                    if ("SUCCESS".equals(serverResponse)) {
+                        System.out.println("Đã gửi yêu cầu ép chốt phiên lên Server thành công.");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể chốt phiên. Server trả về: " + serverResponse);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống", "Có lỗi xảy ra khi gửi yêu cầu.");
+                }
+            }
+        });
     }
 
     private void handleBid(Auction auction, TextField txtBidAmount) {
@@ -251,7 +373,8 @@ public class MainController {
                 latestAuction.getId(), 
                 currentUsername, 
                 newPrice, 
-                java.time.LocalDateTime.now()
+                java.time.LocalDateTime.now(),
+                currentUsername
         );
         
         com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
@@ -304,19 +427,16 @@ public class MainController {
                     return;
                 }
 
-           
                 javafx.scene.chart.NumberAxis xAxis = new javafx.scene.chart.NumberAxis();
                 xAxis.setLabel("Lượt đặt giá");
                 xAxis.setForceZeroInRange(false);
                 xAxis.setTickUnit(1); 
                 xAxis.setMinorTickCount(0);
 
-               
                 javafx.scene.chart.NumberAxis yAxis = new javafx.scene.chart.NumberAxis();
                 yAxis.setLabel("Mức giá (USD)");
                 yAxis.setForceZeroInRange(false);
 
-               
                 javafx.scene.chart.LineChart<Number, Number> lineChart = new javafx.scene.chart.LineChart<>(xAxis, yAxis);
                 lineChart.setTitle("📈 Biểu đồ lịch sử giá: " + auction.getItem().getName());
                 lineChart.setLegendVisible(false);
@@ -327,21 +447,19 @@ public class MainController {
                 for (int i = history.size() - 1; i >= 0; i--) {
                     String line = history.get(i);
                     try {
-                       
                         String[] parts = line.split("đã đặt");
                         if (parts.length > 1) {
-                            String priceString = parts[1].trim().split(" ")[0]; // Lấy "1500.0"
+                            String priceString = parts[1].trim().split(" ")[0];
                             double priceVal = Double.parseDouble(priceString);
                             series.getData().add(new javafx.scene.chart.XYChart.Data<>(turn++, priceVal));
                         }
                     } catch (Exception ex) {
-                    
+                        // Bỏ qua dòng lỗi
                     }
                 }
 
                 lineChart.getData().add(series);
 
-             
                 javafx.scene.Scene chartScene = new javafx.scene.Scene(lineChart, 700, 450);
                 chartScene.getStylesheets().add("data:text/css," + 
                     ".chart-series-line { -fx-stroke: #2563eb; -fx-stroke-width: 3px; } " +
