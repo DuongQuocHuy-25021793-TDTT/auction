@@ -23,7 +23,7 @@ public class AuctionTest {
     @Test
     public void testValidateBid_Success() {
         
-        BidTransaction validBid = new BidTransaction("BID_01", "A_TEST", "UserA", 1500.0, LocalDateTime.now());
+        BidTransaction validBid = new BidTransaction("BID_01", "A_TEST", "UserA", 1500.0, LocalDateTime.now(), "test");
         
         assertNull(auction.validateBid(validBid), "Giá 1500 phải được chấp nhận vì lớn hơn 1000");
     }
@@ -31,14 +31,14 @@ public class AuctionTest {
     @Test
     public void testValidateBid_TooLow() {
    
-        BidTransaction lowBid = new BidTransaction("BID_02", "A_TEST", "UserB", 900.0, LocalDateTime.now());
+        BidTransaction lowBid = new BidTransaction("BID_02", "A_TEST", "UserB", 900.0, LocalDateTime.now(),"test");
      
         assertEquals("TOO_LOW", auction.validateBid(lowBid), "Phải báo lỗi TOO_LOW khi đặt giá thấp hơn giá khởi điểm");
     }
 
     @Test
     public void testValidateBid_InvalidAmount() {
-        BidTransaction negativeBid = new BidTransaction("BID_03", "A_TEST", "UserC", -500.0, LocalDateTime.now());
+        BidTransaction negativeBid = new BidTransaction("BID_03", "A_TEST", "UserC", -500.0, LocalDateTime.now(),"test");
       
         assertEquals("INVALID_AMOUNT", auction.validateBid(negativeBid), "Phải báo lỗi INVALID_AMOUNT khi giá trị âm");
     }
@@ -46,7 +46,7 @@ public class AuctionTest {
     @Test
     public void testPlaceBid_UpdatesHighestPrice() {
     
-        BidTransaction newBid = new BidTransaction("BID_04", "A_TEST", "UserD", 2500.0, LocalDateTime.now());
+        BidTransaction newBid = new BidTransaction("BID_04", "A_TEST", "UserD", 2500.0, LocalDateTime.now(),"test");
         
         boolean isSuccess = auction.placeBid(newBid);
         
