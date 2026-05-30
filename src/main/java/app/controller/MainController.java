@@ -7,8 +7,17 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 import com.google.gson.Gson;
+
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
+import javafx.application.Platform;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 
 import app.database.AppDatabase;
 import app.database.Session;
@@ -516,7 +525,23 @@ public class MainController {
         Label extraLabel = new Label(extraInfo);
         Label startLabel = new Label("Bắt đầu: " + auction.getStartTime().format(DATE_TIME_FORMATTER));
 
-        card.getChildren().addAll(nameLabel, typeLabel, extraLabel, startLabel);
+        Label timerLabel = new Label();
+        timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
+            long remaining = auction.getRemainingTime();
+            if (remaining > 0) {
+                long hours = remaining / 3600;
+                long minutes = (remaining % 3600) / 60;
+                long seconds = remaining % 60;
+                timerLabel.setText(String.format("Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+            } else {
+                timerLabel.setText("Phiên đấu giá đã kết thúc");
+            }
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+
+        card.getChildren().addAll(nameLabel, typeLabel, extraLabel, startLabel, timerLabel);
         
         card.setOnMouseClicked(e -> showAuctionDetails(auction));
 
@@ -597,7 +622,38 @@ public class MainController {
             handleBidAction(auction, priceLabel);
         });
 
-        content.getChildren().addAll(nameLabel, descLabel, priceLabel, statusLabel, startLabel, durationLabel, specificDetails, bidBtn);
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Thời gian");
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Giá (USD)");
+        LineChart<String, Number> lineChart = new LineChart<>(xAxis, yAxis);
+        lineChart.setTitle("Lịch sử đấu giá");
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Giá đấu");
+        for (BidTransaction b : auction.getBidHistory()) {
+            series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
+        }
+        lineChart.getData().add(series);
+        lineChart.setPrefHeight(200);
+
+        Label timerLabel = new Label();
+        timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 14px;");
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
+            long remaining = auction.getRemainingTime();
+            if (remaining > 0) {
+                long hours = remaining / 3600;
+                long minutes = (remaining % 3600) / 60;
+                long seconds = remaining % 60;
+                timerLabel.setText(String.format("Thời gian còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+            } else {
+                timerLabel.setText("Phiên đấu giá đã kết thúc");
+                bidBtn.setDisable(true);
+            }
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        timeline.play();
+
+        content.getChildren().addAll(nameLabel, descLabel, priceLabel, statusLabel, startLabel, durationLabel, specificDetails, lineChart, timerLabel, bidBtn);
 
         if (isAdmin) {
             Button stopBtn = new Button("Ngưng phiên");

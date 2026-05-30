@@ -174,6 +174,18 @@ public class AppDatabase {
         }
     }
 
+    public synchronized boolean updateAuctionStopTime(String auctionId, String newStopTime) {
+        String sql = "UPDATE Auctions SET stopTime = ? WHERE id = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStopTime);
+            pstmt.setString(2, auctionId);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi cập nhật stopTime Auction: " + e.getMessage());
+            return false;
+        }
+    }
+
     public synchronized List<BidTransaction> getBidHistory(String auctionId) {
         List<BidTransaction> history = new ArrayList<>();
         String sql = "SELECT * FROM BidTransactions WHERE auction_id = ? ORDER BY timestamp ASC";
