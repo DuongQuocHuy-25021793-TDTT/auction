@@ -5,10 +5,18 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Font?>
 
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
@@ -26,11 +34,88 @@
                   <Insets bottom="30.0" left="20.0" top="30.0" />
                </VBox.margin>
             </Label>
-            <Button fx:id="btnAll" mnemonicParsing="false" onAction="#filterAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="Trang chủ" />
-            <Button fx:id="btnArt" mnemonicParsing="false" onAction="#filterArt" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Nghệ thuật (Art)" />
-            <Button fx:id="btnElec" mnemonicParsing="false" onAction="#filterElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Điện tử (Electronics)" />
-            <Button fx:id="btnVeh" mnemonicParsing="false" onAction="#filterVehicle" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Phương tiện (Vehicle)" />
-            <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Lịch sử đấu" />
+            
+            <VBox fx:id="normalSidebar" spacing="5.0">
+               <children>
+                  <Button fx:id="btnBackHistory" mnemonicParsing="false" onAction="#hideHistoryMode" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="← Quay lại" visible="false" managed="false"/>
+                  <Button fx:id="btnBackAdmin" mnemonicParsing="false" onAction="#hideAdminUsers" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="← Quay lại" visible="false" managed="false"/>
+                  <Button fx:id="btnAdminFilterAll" mnemonicParsing="false" onAction="#adminFilterAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="Tất cả" visible="false" managed="false"/>
+                  <Button fx:id="btnAdminFilterSeller" mnemonicParsing="false" onAction="#adminFilterSeller" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Seller" visible="false" managed="false"/>
+                  <Button fx:id="btnAdminFilterBidder" mnemonicParsing="false" onAction="#adminFilterBidder" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Bidder" visible="false" managed="false"/>
+                  <Button fx:id="btnAll" mnemonicParsing="false" onAction="#filterAll" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-active" text="Trang chủ" />
+                  <Button fx:id="btnArt" mnemonicParsing="false" onAction="#filterArt" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Nghệ thuật (Art)" />
+                  <Button fx:id="btnElec" mnemonicParsing="false" onAction="#filterElectronics" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Điện tử (Electronics)" />
+                  <Button fx:id="btnVeh" mnemonicParsing="false" onAction="#filterVehicle" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Phương tiện (Vehicle)" />
+                  <Button fx:id="btnHistory" mnemonicParsing="false" onAction="#showHistoryMode" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Lịch sử" />
+                  <Button fx:id="btnManageAccounts" mnemonicParsing="false" onAction="#showAdminUsers" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn" text="Quản lý tài khoản" visible="false" managed="false"/>
+               </children>
+            </VBox>
+
+            <VBox fx:id="auctionSidebar" spacing="15.0" visible="false" managed="false">
+               <padding>
+                  <Insets left="15.0" right="15.0" />
+               </padding>
+               <children>
+                  <Button mnemonicParsing="false" onAction="#handleBackToList" prefHeight="35.0" prefWidth="190.0" styleClass="btn-outline-white" text="← Quay lại" />
+                  
+                  <VBox fx:id="bidderSidebar" spacing="15.0">
+                      <children>
+                          <Label text="ĐẤU GIÁ NHANH" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                          <VBox spacing="8.0">
+                             <children>
+                                <Button onAction="#handleQuickBid500" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="+500 USD" />
+                                <Button onAction="#handleQuickBid1000" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="+1000 USD" />
+                                <Button onAction="#handleQuickBid2000" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="+2000 USD" />
+                                <Button onAction="#handleQuickBid5000" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="+5000 USD" />
+                                <Label text="Tùy chỉnh" textFill="#BDC3C7" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="customBidField" prefHeight="25.0" promptText="100 - 10000" style="-fx-background-radius: 5;" />
+                                <Button onAction="#handleCustomBid" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="Đặt giá" />
+                                <Label fx:id="bidSuccessLabel" text="" styleClass="success-text" />
+                             </children>
+                          </VBox>
+                          
+                          <Label text="TỰ ĐỘNG ĐẤU GIÁ" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 14px;">
+                             <VBox.margin>
+                                <Insets top="15.0" />
+                             </VBox.margin>
+                          </Label>
+                          
+                          <VBox spacing="5.0">
+                             <children>
+                                <Label text="Giá tối đa (USD):" textFill="#BDC3C7" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="maxBidField" prefHeight="25.0" promptText="VD: 5000" style="-fx-background-radius: 5;" />
+                             </children>
+                          </VBox>
+                          
+                          <VBox spacing="5.0">
+                             <children>
+                                <Label text="Bước giá (USD):" textFill="#BDC3C7" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="bidStepField" prefHeight="25.0" promptText="VD: 100" style="-fx-background-radius: 5;" />
+                             </children>
+                          </VBox>
+        
+                          <VBox spacing="5.0">
+                             <children>
+                                <Label text="Độ trễ (giây):" textFill="#BDC3C7" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="autoBidDelayField" prefHeight="25.0" promptText="Mặc định: 1" style="-fx-background-radius: 5;" />
+                             </children>
+                          </VBox>
+                          
+                          <Button fx:id="btnAutoBid" onAction="#handleSaveAutoBid" prefHeight="35.0" prefWidth="190.0" styleClass="btn-primary" text="Tự động đấu giá" />
+                          <Label fx:id="autoBidStatusLabel" text="" textFill="#2ECC71" style="-fx-font-weight: bold; -fx-font-size: 12px;" />
+                      </children>
+                  </VBox>
+                  
+                  <VBox fx:id="sellerSidebar" spacing="10.0" visible="false" managed="false">
+                      <children>
+                          <Label text="TOP 5 NGƯỜI ĐẤU GIÁ" textFill="WHITE" style="-fx-font-weight: bold; -fx-font-size: 14px;" />
+                          <VBox fx:id="topBiddersContainer" spacing="5.0" />
+                          <Button onAction="#handleShowAllBidders" prefHeight="30.0" prefWidth="190.0" styleClass="btn-outline-white" text="Thêm..." />
+                      </children>
+                  </VBox>
+               </children>
+            </VBox>
+            
             <VBox VBox.vgrow="ALWAYS" />
             <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#handleLogout" prefHeight="45.0" prefWidth="220.0" styleClass="sidebar-btn-logout" text="Đăng xuất" />
          </children>
@@ -40,45 +125,197 @@
    <center>
       <VBox prefHeight="200.0" prefWidth="100.0" styleClass="main-content" BorderPane.alignment="CENTER">
          <children>
-            <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="780.0" spacing="12.0">
+            <!-- Normal Content -->
+            <VBox fx:id="normalCenterContent" VBox.vgrow="ALWAYS">
                <children>
-                  <Label text="Sản phẩm đang đấu giá">
-                     <font>
-                        <Font name="System Bold" size="22.0" />
-                     </font>
-                  </Label>
-                  <HBox HBox.hgrow="ALWAYS" />
-                  <TextField fx:id="searchField" prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
-                  <Button mnemonicParsing="false" onAction="#handleSearch" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
-                  
-                  <Label text="|" textFill="#bdc3c7">
-                     <font>
-                        <Font size="22.0" />
-                     </font>
-                     <HBox.margin>
-                        <Insets left="5.0" right="5.0" />
-                     </HBox.margin>
-                  </Label>
+                  <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="780.0" spacing="12.0">
+                     <children>
+                        <HBox alignment="CENTER" spacing="10.0">
+                           <children>
+                              <Button fx:id="btnTabRunning" mnemonicParsing="false" onAction="#showRunningAuctions" text="Đang diễn ra" styleClass="btn-primary" />
+                              <Button fx:id="btnTabUpcoming" mnemonicParsing="false" onAction="#showUpcomingAuctions" text="Chuẩn bị diễn ra" styleClass="btn-outline" />
+                           </children>
+                        </HBox>
+                        <HBox HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="searchField" prefHeight="35.0" prefWidth="200.0" promptText="Tìm sản phẩm..." styleClass="search-box" />
+                        <Button mnemonicParsing="false" onAction="#handleSearch" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
+                        
+                        <Label text="|" textFill="#bdc3c7">
+                           <font>
+                              <Font size="22.0" />
+                           </font>
+                           <HBox.margin>
+                              <Insets left="5.0" right="5.0" />
+                           </HBox.margin>
+                        </Label>
 
-                  <Button fx:id="createAuctionButton" mnemonicParsing="false" onAction="#handleCreateAuction" prefHeight="35.0" styleClass="btn-primary" text="Tạo phiên" />
-                  <Button fx:id="requestProductButton" mnemonicParsing="false" onAction="#handleRequestProduct" prefHeight="35.0" styleClass="btn-outline" text="Yêu cầu SP" />
-                  <Button fx:id="loginButton" onAction="#login" mnemonicParsing="false" prefHeight="35.0" prefWidth="100.0" styleClass="btn-outline" text="Đăng nhập" />
-                  <Button fx:id="signUpButton" onAction="#signUp" mnemonicParsing="false" prefHeight="35.0" prefWidth="90.0" styleClass="btn-primary" text="Đăng ký" />
-               </children>
-               <VBox.margin>
-                  <Insets left="20.0" right="20.0" />
-               </VBox.margin>
-            </HBox>
-
-            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
-               <content>
-                  <FlowPane fx:id="itemContainer" hgap="20.0" prefWrapLength="750.0" vgap="20.0">
+                        <Button fx:id="createAuctionButton" mnemonicParsing="false" onAction="#handleCreateAuction" prefHeight="35.0" styleClass="btn-primary" text="Tạo phiên" />
+                        <Button fx:id="requestProductButton" mnemonicParsing="false" onAction="#handleRequestProduct" prefHeight="35.0" styleClass="btn-outline" text="Yêu cầu SP" />
+                        <Button fx:id="loginButton" onAction="#login" mnemonicParsing="false" prefHeight="35.0" prefWidth="100.0" styleClass="btn-outline" text="Đăng nhập" />
+                        <Button fx:id="signUpButton" onAction="#signUp" mnemonicParsing="false" prefHeight="35.0" prefWidth="90.0" styleClass="btn-primary" text="Đăng ký" />
+                     </children>
                      <padding>
-                        <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+                        <Insets left="20.0" right="20.0" />
                      </padding>
-                  </FlowPane>
-               </content>
-            </ScrollPane>
+                  </HBox>
+
+                  <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+                     <content>
+                        <FlowPane fx:id="itemContainer" hgap="20.0" prefWrapLength="750.0" vgap="20.0">
+                           <padding>
+                              <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+                           </padding>
+                        </FlowPane>
+                     </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+
+            <!-- History Content -->
+            <VBox fx:id="historyCenterContent" visible="false" managed="false" VBox.vgrow="ALWAYS">
+               <children>
+                  <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="780.0" spacing="12.0">
+                     <children>
+                        <Label text="Lịch sử hệ thống">
+                           <font>
+                              <Font name="System Bold" size="22.0" />
+                           </font>
+                        </Label>
+                        
+                        <!-- Admin tabs (only visible for Admin) -->
+                        <HBox fx:id="adminHistoryTabs" visible="false" managed="false" spacing="10.0" alignment="CENTER">
+                           <children>
+                              <Button fx:id="tabAuctionHistory" onAction="#switchAdminHistoryTab" text="Lịch sử phiên đấu giá" styleClass="btn-primary" />
+                              <Button fx:id="tabSuspensionHistory" onAction="#switchAdminHistoryTab" text="Lịch sử tài khoản vi phạm" styleClass="btn-outline" />
+                           </children>
+                           <HBox.margin>
+                              <Insets left="20.0" />
+                           </HBox.margin>
+                        </HBox>
+
+                        <HBox HBox.hgrow="ALWAYS" />
+                        
+                        <!-- Seller combobox for Admin -->
+                        <ComboBox fx:id="adminSellerComboBox" prefHeight="35.0" prefWidth="150.0" promptText="Chọn Seller" visible="false" managed="false" editable="true" />
+                        <ComboBox fx:id="adminRoleComboBox" prefHeight="35.0" prefWidth="120.0" promptText="Tất cả" visible="false" managed="false" />
+                        
+                        <TextField fx:id="historySearchField" prefHeight="35.0" prefWidth="200.0" promptText="Tìm kiếm lịch sử phiên..." styleClass="search-box" />
+                        <Button mnemonicParsing="false" onAction="#handleSearchHistory" prefHeight="35.0" styleClass="btn-primary" text="Tìm kiếm" />
+                     </children>
+                     <padding>
+                        <Insets left="20.0" right="20.0" />
+                     </padding>
+                  </HBox>
+
+                  <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+                     <content>
+                        <FlowPane fx:id="historyContainer" hgap="20.0" prefWrapLength="750.0" vgap="20.0">
+                           <padding>
+                              <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+                           </padding>
+                        </FlowPane>
+                     </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+
+            <!-- Auction Detail Content -->
+            <VBox fx:id="auctionDetailContent" visible="false" managed="false" spacing="15.0" VBox.vgrow="ALWAYS">
+               <padding>
+                  <Insets bottom="20.0" left="25.0" right="25.0" top="20.0" />
+               </padding>
+               <children>
+                  <HBox alignment="CENTER_LEFT" spacing="15.0">
+                     <children>
+                        <Label fx:id="detailNameLabel" text="Tên sản phẩm" style="-fx-font-weight: bold; -fx-font-size: 24px; -fx-text-fill: #2C3E50;" />
+                        <Label fx:id="detailStatusLabel" text="Đang diễn ra" style="-fx-background-color: #2ECC71; -fx-text-fill: white; -fx-padding: 4 10; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 12px;" />
+                     </children>
+                  </HBox>
+                  
+                  <GridPane hgap="20.0" vgap="15.0">
+                     <columnConstraints>
+                        <ColumnConstraints percentWidth="50" />
+                        <ColumnConstraints percentWidth="50" />
+                     </columnConstraints>
+                     <rowConstraints>
+                        <RowConstraints />
+                     </rowConstraints>
+                     <children>
+                        <!-- Thẻ thông tin sản phẩm -->
+                        <VBox spacing="10.0" styleClass="info-card" GridPane.columnIndex="0" prefHeight="180">
+                           <padding>
+                              <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                           </padding>
+                           <children>
+                              <Label text="THÔNG TIN SẢN PHẨM" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #7F8C8D;" />
+                              <Label fx:id="detailDescLabel" text="Mô tả: --" wrapText="true" style="-fx-font-size: 14px;" />
+                              <VBox fx:id="detailSpecificVBox" spacing="5.0" style="-fx-font-size: 14px;" />
+                           </children>
+                        </VBox>
+                        
+                        <!-- Thẻ thông tin đấu giá -->
+                        <VBox spacing="10.0" styleClass="info-card" GridPane.columnIndex="1" prefHeight="180">
+                           <padding>
+                              <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                           </padding>
+                           <children>
+                              <Label text="TRẠNG THÁI ĐẤU GIÁ" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #7F8C8D;" />
+                              <Label fx:id="detailPriceLabel" text="Giá hiện tại: 0.0 USD" style="-fx-text-fill: #E67E22; -fx-font-weight: bold; -fx-font-size: 20px;" />
+                              <Label fx:id="detailBidderLabel" text="Người đặt giá cao nhất: --" style="-fx-font-size: 14px;" />
+                              <Label fx:id="detailTimerLabel" text="Thời gian còn lại: --" style="-fx-text-fill: #C0392B; -fx-font-weight: bold; -fx-font-size: 16px;" />
+                              <HBox fx:id="detailActionBox" spacing="10.0">
+                                 <VBox.margin>
+                                    <Insets top="5.0" />
+                                 </VBox.margin>
+                              </HBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </GridPane>
+                  
+                  <!-- Khu vực vinh danh người chiến thắng (Chỉ hiện trong Lịch sử) -->
+                  <VBox fx:id="detailWinnerBox" visible="false" managed="false" style="-fx-background-color: #E8F8F5; -fx-border-color: #2ECC71; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 15; -fx-alignment: CENTER;" spacing="5.0">
+                     <children>
+                        <Label text="NGƯỜI CHIẾN THẮNG" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #27AE60;" />
+                        <Label fx:id="detailWinnerText" text="Tên - Số tiền" style="-fx-font-weight: bold; -fx-font-size: 20px; -fx-text-fill: #2C3E50;" />
+                        <Label fx:id="detailBidderHistoryText" text="" style="-fx-font-size: 14px; -fx-text-fill: #7F8C8D; -fx-font-style: italic;" visible="false" managed="false" />
+                     </children>
+                  </VBox>
+                  
+                  <!-- Biểu đồ -->
+                  <VBox styleClass="info-card" VBox.vgrow="ALWAYS">
+                     <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                     </padding>
+                     <children>
+                        <LineChart fx:id="detailChart" createSymbols="true" legendVisible="false" VBox.vgrow="ALWAYS">
+                           <xAxis>
+                              <CategoryAxis fx:id="detailChartX" side="BOTTOM" />
+                           </xAxis>
+                           <yAxis>
+                              <NumberAxis fx:id="detailChartY" side="LEFT" />
+                           </yAxis>
+                        </LineChart>
+                     </children>
+                  </VBox>
+               </children>
+            </VBox>
+
+            <!-- Admin Users Content -->
+            <VBox fx:id="adminUsersContent" visible="false" managed="false" VBox.vgrow="ALWAYS" spacing="15.0">
+               <padding>
+                  <Insets bottom="20.0" left="25.0" right="25.0" top="20.0" />
+               </padding>
+               <children>
+                  <Label text="Quản lý người dùng" style="-fx-font-weight: bold; -fx-font-size: 24px; -fx-text-fill: #2C3E50;" />
+                  <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+                      <content>
+                          <VBox fx:id="userListContainer" spacing="10.0" />
+                      </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+
          </children>
       </VBox>
    </center>

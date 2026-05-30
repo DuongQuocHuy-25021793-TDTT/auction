@@ -4,6 +4,7 @@ import app.model.User;
 
 public class Session {
     private static User currentUser;
+    private static boolean welcomeMessageShown;
 
     private Session() {
     }
@@ -18,5 +19,14 @@ public class Session {
 
     public static void clear() {
         currentUser = null;
+        welcomeMessageShown = false;
+    }
+
+    public static boolean isWelcomeMessageShown() {
+        return welcomeMessageShown;
+    }
+
+    public static void setWelcomeMessageShown(boolean welcomeMessageShown) {
+        Session.welcomeMessageShown = welcomeMessageShown;
     }
 }

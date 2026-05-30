@@ -98,7 +98,7 @@ public class CreateAuctionController {
         Label sectionSchedule = new Label("Thời gian phiên đấu giá");
         sectionSchedule.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-padding: 15 0 5 0;");
 
-        startTimeField = new TextField(LocalDateTime.now().plusMinutes(10).format(DATE_TIME_FORMATTER));
+        startTimeField = new TextField(LocalDateTime.now().plusMinutes(1).format(DATE_TIME_FORMATTER));
         startTimeField.setPromptText("yyyy-MM-dd HH:mm");
         durationField = new TextField("60");
         durationField.setPromptText("Số phút");
@@ -227,8 +227,12 @@ public class CreateAuctionController {
                     stopTime,
                     item.getStartingPrice(),
                     "RUNNING");
-
+            
             User user = Session.getCurrentUser();
+            if (user != null) {
+                auction.setSellerId(user.getId());
+            }
+
             if (database.addAuction(auction)) {
                 if (user instanceof Seller) {
                     ((Seller) user).addItem(item);

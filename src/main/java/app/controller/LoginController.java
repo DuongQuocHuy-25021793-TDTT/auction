@@ -41,6 +41,37 @@ public class LoginController {
             return;
         }
 
+        if ("PENDING".equals(user.getStatus())) {
+            statusLabel.setText("Tài khoản đang chờ duyệt!");
+            statusLabel.setStyle("-fx-text-fill: orange;");
+            return;
+        }
+
+        if ("REJECTED".equals(user.getStatus())) {
+            statusLabel.setText("Tài khoản đã bị từ chối!");
+            statusLabel.setStyle("-fx-text-fill: red;");
+            return;
+        }
+
+        if ("SUSPENDED".equals(user.getStatus())) {
+            if (user.getSuspendedUntil() > 0 && System.currentTimeMillis() > user.getSuspendedUntil()) {
+                // Hết hạn đình chỉ -> Khôi phục
+                user.setStatus("ACTIVE");
+                user.setSuspendedUntil(0);
+                AppDatabase.getInstance().updateUserStatus(user);
+            } else {
+                if (user.getSuspendedUntil() == -1) {
+                    statusLabel.setText("Tài khoản đã bị đình chỉ vĩnh viễn!");
+                } else {
+                    java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(user.getSuspendedUntil()), java.time.ZoneId.systemDefault());
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                    statusLabel.setText("Tài khoản bị đình chỉ đến: " + date.format(formatter));
+                }
+                statusLabel.setStyle("-fx-text-fill: red;");
+                return;
+            }
+        }
+
         Session.setCurrentUser(user);
 
         try {
@@ -48,7 +79,10 @@ public class LoginController {
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            stage.setMaximized(true);
             stage.setTitle("Auction System - " + user.getRole());
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,7 +97,10 @@ public class LoginController {
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            if (wasMaximized) stage.setMaximized(true);
             stage.setTitle("Đăng ký tài khoản");
         } catch (Exception e) {
             e.printStackTrace();

@@ -34,6 +34,7 @@ import app.model.Message;
 import app.model.Seller;
 import app.model.User;
 import app.model.Vehicle;
+import app.model.SuspensionLog;
 import app.network.ClientConnection;
 import app.network.NetworkConfig;
 import javafx.event.ActionEvent;
@@ -85,6 +86,72 @@ public class MainController {
     @FXML
     private TextField searchField;
 
+    // --- Biến giao diện in-place detail ---
+    @FXML private VBox normalSidebar, auctionSidebar;
+    @FXML private VBox normalCenterContent, auctionDetailContent;
+    @FXML private VBox adminUsersContent, userListContainer;
+    @FXML private Button btnManageAccounts, btnHistory, btnBackHistory;
+    
+    // --- Biến giao diện History ---
+    @FXML private VBox historyCenterContent;
+    @FXML private HBox adminHistoryTabs;
+    @FXML private Button tabAuctionHistory, tabSuspensionHistory;
+    @FXML private ComboBox<String> adminSellerComboBox, adminRoleComboBox;
+    @FXML private TextField historySearchField;
+    @FXML private FlowPane historyContainer;
+    @FXML private VBox detailWinnerBox;
+    @FXML private Label detailWinnerText, detailBidderHistoryText;
+    
+    private boolean isHistoryMode = false;
+    private int adminHistoryTabMode = 1; // 1: Auction, 2: Suspension
+
+    @FXML private Label detailNameLabel, detailStatusLabel, detailDescLabel, detailPriceLabel, detailBidderLabel, detailTimerLabel;
+    @FXML private VBox detailSpecificVBox;
+    @FXML private HBox detailActionBox;
+    @FXML private LineChart<String, Number> detailChart;
+    @FXML private CategoryAxis detailChartX;
+    @FXML private NumberAxis detailChartY;
+
+    // --- Biến Auto-Bid & Sidebar ---
+    @FXML private VBox bidderSidebar, sellerSidebar;
+    @FXML private VBox topBiddersContainer;
+    @FXML private TextField customBidField;
+    @FXML private Label bidSuccessLabel;
+    @FXML private Button btnAutoBid;
+    @FXML private Label autoBidStatusLabel;
+    @FXML private TextField maxBidField, bidStepField, autoBidDelayField;
+
+    public static class AutoBidConfig {
+        public boolean isActivated;
+        public double maxBid;
+        public double bidStep;
+        public int delaySeconds;
+        public boolean isWaitingToBid;
+        public AutoBidConfig(boolean isActivated, double maxBid, double bidStep, int delaySeconds) {
+            this.isActivated = isActivated;
+            this.maxBid = maxBid;
+            this.bidStep = bidStep;
+            this.delaySeconds = delaySeconds;
+            this.isWaitingToBid = false;
+        }
+    }
+
+    private Map<String, AutoBidConfig> autoBidConfigs = new HashMap<>();
+    private Auction activeAuction = null;
+    private Timeline detailUpdateTimeline = null;
+    private Timeline autoBidDelayTimeline = null;
+    private int lastAuctionCount = -1;
+
+    @FXML private Button btnTabRunning;
+    @FXML private Button btnTabUpcoming;
+    private boolean isUpcomingTab = false;
+
+    @FXML private Button btnBackAdmin;
+    @FXML private Button btnAdminFilterAll;
+    @FXML private Button btnAdminFilterSeller;
+    @FXML private Button btnAdminFilterBidder;
+    private String adminUserFilter = "ALL";
+
     private final AppDatabase database = AppDatabase.getInstance();
 
     private final Gson gson = new com.google.gson.GsonBuilder()
@@ -106,6 +173,18 @@ public class MainController {
         ClientConnection.getInstance().connect(NetworkConfig.HOST, NetworkConfig.PORT);
         applySessionState();
         loadAuctionItems();
+
+        Timeline mainRefreshTimeline = new Timeline(new KeyFrame(Duration.seconds(2), ev -> {
+            if (activeAuction == null) {
+                User user = Session.getCurrentUser();
+                int currentDbCount = (user == null) ? (demoAuctions != null ? demoAuctions.size() : 0) : database.getAuctions().size();
+                if (currentDbCount != lastAuctionCount) {
+                    loadAuctionItems();
+                }
+            }
+        }));
+        mainRefreshTimeline.setCycleCount(Animation.INDEFINITE);
+        mainRefreshTimeline.play();
     }
 
     @FXML
@@ -430,12 +509,24 @@ public class MainController {
         boolean loggedIn = user != null;
         boolean isBidder = loggedIn && user.getRole() == AccountRole.BIDDER;
         boolean isSeller = loggedIn && user.getRole() == AccountRole.SELLER;
+        boolean isAdmin = loggedIn && user.getRole() == AccountRole.ADMIN;
 
         setButtonVisible(loginButton, !loggedIn);
         setButtonVisible(signUpButton, !loggedIn);
         setButtonVisible(logoutButton, loggedIn);
         setButtonVisible(requestProductButton, isBidder);
         setButtonVisible(createAuctionButton, isSeller);
+        setButtonVisible(btnManageAccounts, isAdmin);
+        
+        if (!isHistoryMode && !adminUsersContent.isVisible()) {
+            setButtonVisible(btnHistory, loggedIn);
+            setButtonVisible(btnBackHistory, false);
+            setButtonVisible(btnAll, true);
+            setButtonVisible(btnArt, true);
+            setButtonVisible(btnElec, true);
+            setButtonVisible(btnVeh, true);
+        }
+        setButtonVisible(btnBackAdmin, false);
     }
 
     private void setButtonVisible(Button button, boolean visible) {
@@ -450,17 +541,507 @@ public class MainController {
     @FXML void filterElectronics(ActionEvent event) { setActiveFilter(btnElec, "ELEC"); }
     @FXML void filterVehicle(ActionEvent event) { setActiveFilter(btnVeh, "VEHICLE"); }
 
+    @FXML
+    public void showAdminUsers(ActionEvent event) {
+        isHistoryMode = false;
+        if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
+        activeAuction = null;
+        
+        normalSidebar.setVisible(true); normalSidebar.setManaged(true);
+        auctionSidebar.setVisible(false); auctionSidebar.setManaged(false);
+        
+        normalCenterContent.setVisible(false); normalCenterContent.setManaged(false);
+        auctionDetailContent.setVisible(false); auctionDetailContent.setManaged(false);
+        historyCenterContent.setVisible(false); historyCenterContent.setManaged(false);
+        adminUsersContent.setVisible(true); adminUsersContent.setManaged(true);
+        
+        setButtonVisible(btnAll, false);
+        setButtonVisible(btnArt, false);
+        setButtonVisible(btnElec, false);
+        setButtonVisible(btnVeh, false);
+        setButtonVisible(btnHistory, false);
+        setButtonVisible(btnManageAccounts, false);
+        setButtonVisible(btnBackHistory, false);
+        setButtonVisible(btnBackAdmin, true);
+        
+        setButtonVisible(btnAdminFilterAll, true);
+        setButtonVisible(btnAdminFilterSeller, true);
+        setButtonVisible(btnAdminFilterBidder, true);
+        
+        loadUsersToAdminView();
+    }
+
+    @FXML
+    public void hideAdminUsers(ActionEvent event) {
+        adminUsersContent.setVisible(false); adminUsersContent.setManaged(false);
+        normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
+        
+        setButtonVisible(btnBackAdmin, false);
+        setButtonVisible(btnAdminFilterAll, false);
+        setButtonVisible(btnAdminFilterSeller, false);
+        setButtonVisible(btnAdminFilterBidder, false);
+        applySessionState();
+        setActiveFilter(btnAll, null);
+    }
+
+    @FXML void adminFilterAll(ActionEvent event) { setAdminUserFilter("ALL", btnAdminFilterAll); }
+    @FXML void adminFilterSeller(ActionEvent event) { setAdminUserFilter("SELLER", btnAdminFilterSeller); }
+    @FXML void adminFilterBidder(ActionEvent event) { setAdminUserFilter("BIDDER", btnAdminFilterBidder); }
+
+    private void setAdminUserFilter(String filter, Button activeBtn) {
+        if (btnAdminFilterAll != null) btnAdminFilterAll.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnAdminFilterSeller != null) btnAdminFilterSeller.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnAdminFilterBidder != null) btnAdminFilterBidder.getStyleClass().setAll("button", "sidebar-btn");
+        if (activeBtn != null) activeBtn.getStyleClass().setAll("button", "sidebar-btn-active");
+        adminUserFilter = filter;
+        loadUsersToAdminView();
+    }
+
+    private void loadUsersToAdminView() {
+        userListContainer.getChildren().clear();
+        List<User> users = AppDatabase.getInstance().getUsers();
+        
+        users.stream()
+            .filter(u -> u.getRole() != AccountRole.ADMIN)
+            .filter(u -> "ALL".equals(adminUserFilter) || adminUserFilter.equals(u.getRole().name()))
+            .sorted(Comparator.comparing(User::getId))
+            .forEach(u -> userListContainer.getChildren().add(createUserCard(u)));
+        
+        if (userListContainer.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("Không có");
+            emptyLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #7F8C8D; -fx-padding: 20;");
+            userListContainer.getChildren().add(emptyLabel);
+        }
+    }
+
+    private HBox createUserCard(User u) {
+        HBox card = new HBox(15);
+        card.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);");
+        card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        VBox info = new VBox(5);
+        Label nameLbl = new Label(u.getFullName() != null && !u.getFullName().isEmpty() ? u.getFullName() : u.getUsername());
+        nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+        Label roleLbl = new Label("Vai trò: " + u.getRole() + " | Trạng thái: " + u.getStatus());
+        
+        String suspensionInfo = "Đình chỉ: " + u.getSuspensionCount() + " lần";
+        if ("SUSPENDED".equals(u.getStatus())) {
+            if (u.getSuspendedUntil() == -1) {
+                suspensionInfo += " (Vĩnh viễn)";
+            } else {
+                java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(u.getSuspendedUntil()), java.time.ZoneId.systemDefault());
+                java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                suspensionInfo += " (Đến " + date.format(formatter) + ")";
+            }
+        }
+        Label suspLbl = new Label(suspensionInfo);
+        info.getChildren().addAll(nameLbl, roleLbl, suspLbl);
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        HBox.setHgrow(actions, javafx.scene.layout.Priority.ALWAYS);
+
+        if (u.getRole() == AccountRole.SELLER && "PENDING".equals(u.getStatus())) {
+            Button approveBtn = new Button("Duyệt");
+            approveBtn.getStyleClass().add("btn-primary");
+            approveBtn.setOnAction(e -> {
+                u.setStatus("ACTIVE");
+                AppDatabase.getInstance().updateUserStatus(u);
+                loadUsersToAdminView();
+            });
+            Button rejectBtn = new Button("Từ chối");
+            rejectBtn.getStyleClass().add("btn-outline");
+            rejectBtn.setOnAction(e -> {
+                u.setStatus("REJECTED");
+                AppDatabase.getInstance().updateUserStatus(u);
+                loadUsersToAdminView();
+            });
+            actions.getChildren().addAll(approveBtn, rejectBtn);
+        } else {
+            if (!"SUSPENDED".equals(u.getStatus())) {
+                Button suspendBtn = new Button("Đình chỉ");
+                suspendBtn.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 15; -fx-background-radius: 5;");
+                suspendBtn.setOnAction(e -> suspendUser(u));
+                actions.getChildren().add(suspendBtn);
+            } else {
+                Button restoreBtn = new Button("Khôi phục");
+                restoreBtn.setStyle("-fx-background-color: #2ECC71; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 15; -fx-background-radius: 5;");
+                restoreBtn.setOnAction(e -> {
+                    u.setStatus("ACTIVE");
+                    u.setSuspendedUntil(0);
+                    AppDatabase.getInstance().updateUserStatus(u);
+                    loadUsersToAdminView();
+                });
+                actions.getChildren().add(restoreBtn);
+            }
+        }
+
+        card.getChildren().addAll(info, actions);
+        return card;
+    }
+
+    private void suspendUser(User u) {
+        // Reset count if > 1 year
+        long oneYearMillis = 365L * 24 * 60 * 60 * 1000;
+        if (u.getLastSuspensionTime() > 0 && System.currentTimeMillis() - u.getLastSuspensionTime() > oneYearMillis) {
+            if (u.getSuspensionCount() < 3) {
+                u.setSuspensionCount(0); // Reset
+            }
+        }
+
+        u.setSuspensionCount(u.getSuspensionCount() + 1);
+        u.setLastSuspensionTime(System.currentTimeMillis());
+        u.setStatus("SUSPENDED");
+
+        if (u.getSuspensionCount() == 1) {
+            u.setSuspendedUntil(System.currentTimeMillis() + 3L * 24 * 60 * 60 * 1000); // 3 days
+        } else if (u.getSuspensionCount() == 2) {
+            u.setSuspendedUntil(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000); // 7 days
+        } else {
+            u.setSuspendedUntil(-1); // Permanent
+        }
+
+        AppDatabase.getInstance().updateUserStatus(u);
+        
+        SuspensionLog log = new SuspensionLog(
+            java.util.UUID.randomUUID().toString(),
+            u.getId(),
+            u.getSuspensionCount() > 2 ? 3 : u.getSuspensionCount(),
+            LocalDateTime.now(),
+            "Đang hiệu lực"
+        );
+        AppDatabase.getInstance().addSuspensionLog(log);
+
+        loadUsersToAdminView();
+        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã đình chỉ tài khoản " + u.getUsername() + " (Lần " + u.getSuspensionCount() + ")");
+    }
+
+    @FXML
+    public void showHistoryMode(ActionEvent event) {
+        if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
+        activeAuction = null;
+        isHistoryMode = true;
+        
+        setButtonVisible(btnHistory, false);
+        setButtonVisible(btnBackHistory, true);
+        setButtonVisible(btnManageAccounts, false);
+        
+        if (btnAll != null) btnAll.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnArt != null) btnArt.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnElec != null) btnElec.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnVeh != null) btnVeh.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnManageAccounts != null) btnManageAccounts.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnHistory != null) btnHistory.getStyleClass().setAll("button", "sidebar-btn-active");
+        if (btnBackHistory != null) btnBackHistory.getStyleClass().setAll("button", "sidebar-btn-active");
+        
+        normalSidebar.setVisible(true); normalSidebar.setManaged(true);
+        auctionSidebar.setVisible(false); auctionSidebar.setManaged(false);
+        
+        normalCenterContent.setVisible(false); normalCenterContent.setManaged(false);
+        auctionDetailContent.setVisible(false); auctionDetailContent.setManaged(false);
+        adminUsersContent.setVisible(false); adminUsersContent.setManaged(false);
+        historyCenterContent.setVisible(true); historyCenterContent.setManaged(true);
+        
+        User user = Session.getCurrentUser();
+        if (user instanceof Admin) {
+            adminHistoryTabs.setVisible(true); adminHistoryTabs.setManaged(true);
+            
+            if (adminSellerComboBox != null) {
+                adminSellerComboBox.getItems().clear();
+                AppDatabase.getInstance().getUsers().stream()
+                    .filter(u -> u instanceof Seller)
+                    .forEach(u -> adminSellerComboBox.getItems().add(u.getUsername()));
+                adminSellerComboBox.setOnAction(e -> loadHistoryItems());
+            }
+            
+            if (adminRoleComboBox != null) {
+                adminRoleComboBox.getItems().addAll("Tất cả", "Seller", "Bidder");
+                adminRoleComboBox.setValue("Tất cả");
+                adminRoleComboBox.setOnAction(e -> loadHistoryItems());
+            }
+
+            adminSellerComboBox.setVisible(true); adminSellerComboBox.setManaged(true);
+            adminRoleComboBox.setVisible(false); adminRoleComboBox.setManaged(false);
+            
+            // Populate sellers
+            adminSellerComboBox.getItems().clear();
+            AppDatabase.getInstance().getUsers().stream()
+                .filter(u -> u instanceof Seller)
+                .forEach(u -> adminSellerComboBox.getItems().add(u.getUsername()));
+                
+            adminSellerComboBox.setOnAction(e -> loadHistoryItems());
+            switchAdminHistoryTab(new ActionEvent(tabAuctionHistory, null));
+        } else {
+            adminHistoryTabs.setVisible(false); adminHistoryTabs.setManaged(false);
+            adminSellerComboBox.setVisible(false); adminSellerComboBox.setManaged(false);
+            if (adminRoleComboBox != null) {
+                adminRoleComboBox.setVisible(false); adminRoleComboBox.setManaged(false);
+            }
+            btnAll.setText("Tất cả");
+            loadHistoryItems();
+        }
+    }
+
+    @FXML
+    public void hideHistoryMode(ActionEvent event) {
+        isHistoryMode = false;
+        setButtonVisible(btnHistory, true);
+        setButtonVisible(btnBackHistory, false);
+        
+        historyCenterContent.setVisible(false); historyCenterContent.setManaged(false);
+        normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
+        
+        // Restore category buttons text if changed
+        btnAll.setText("Trang chủ");
+        btnArt.setText("Nghệ thuật (Art)");
+        btnElec.setText("Điện tử (Electronics)");
+        btnVeh.setText("Phương tiện (Vehicle)");
+        btnAll.setVisible(true); btnAll.setManaged(true);
+        btnArt.setVisible(true); btnArt.setManaged(true);
+        btnElec.setVisible(true); btnElec.setManaged(true);
+        btnVeh.setVisible(true); btnVeh.setManaged(true);
+        
+        loadAuctionItems();
+    }
+    
+    @FXML
+    public void switchAdminHistoryTab(ActionEvent event) {
+        if (event.getSource() == tabAuctionHistory) {
+            adminHistoryTabMode = 1;
+            tabAuctionHistory.getStyleClass().setAll("button", "btn-primary");
+            tabSuspensionHistory.getStyleClass().setAll("button", "btn-outline");
+            
+            adminSellerComboBox.setVisible(true); adminSellerComboBox.setManaged(true);
+            adminRoleComboBox.setVisible(false); adminRoleComboBox.setManaged(false);
+            
+            btnAll.setText("Tất cả");
+            btnArt.setText("Nghệ thuật (Art)");
+            btnElec.setText("Điện tử (Electronics)");
+            btnVeh.setText("Phương tiện (Vehicle)");
+            btnAll.setVisible(true); btnAll.setManaged(true);
+            btnArt.setVisible(true); btnArt.setManaged(true);
+            btnElec.setVisible(true); btnElec.setManaged(true);
+            btnVeh.setVisible(true); btnVeh.setManaged(true);
+            historySearchField.setPromptText("Tìm kiếm lịch sử phiên...");
+            setActiveFilter(btnAll, null);
+        } else if (event.getSource() == tabSuspensionHistory) {
+            adminHistoryTabMode = 2;
+            tabAuctionHistory.getStyleClass().setAll("button", "btn-outline");
+            tabSuspensionHistory.getStyleClass().setAll("button", "btn-primary");
+            
+            adminSellerComboBox.setVisible(false); adminSellerComboBox.setManaged(false);
+            adminRoleComboBox.setVisible(true); adminRoleComboBox.setManaged(true);
+            
+            btnAll.setText("Lần 1");
+            btnArt.setText("Lần 2");
+            btnElec.setText("Vĩnh viễn");
+            btnVeh.setVisible(false); btnVeh.setManaged(false);
+            historySearchField.setPromptText("Tìm kiếm người dùng...");
+            setActiveFilter(btnAll, "L1");
+        }
+    }
+    
+    @FXML
+    public void handleSearchHistory(ActionEvent event) {
+        loadHistoryItems();
+    }
+
     private void setActiveFilter(Button activeBtn, String type) {
         if (btnAll != null) btnAll.getStyleClass().setAll("button", "sidebar-btn");
         if (btnArt != null) btnArt.getStyleClass().setAll("button", "sidebar-btn");
         if (btnElec != null) btnElec.getStyleClass().setAll("button", "sidebar-btn");
         if (btnVeh != null) btnVeh.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnHistory != null) btnHistory.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnBackHistory != null) btnBackHistory.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnManageAccounts != null) btnManageAccounts.getStyleClass().setAll("button", "sidebar-btn");
         if (activeBtn != null) activeBtn.getStyleClass().setAll("button", "sidebar-btn-active");
         currentFilterType = type;
+        if (isHistoryMode) {
+            loadHistoryItems();
+        } else {
+            loadAuctionItems();
+        }
+    }
+
+    private void loadHistoryItems() {
+        historyContainer.getChildren().clear();
+        User user = Session.getCurrentUser();
+        if (user == null) return;
+        
+        String keyword = historySearchField.getText().trim().toLowerCase();
+
+        if (user instanceof Admin) {
+            if (adminHistoryTabMode == 2) {
+                // Lịch sử vi phạm
+                int filterLevel = 0;
+                if ("L1".equals(currentFilterType)) filterLevel = 1;
+                else if ("L2".equals(currentFilterType)) filterLevel = 2;
+                else if ("L3".equals(currentFilterType)) filterLevel = 3;
+                
+                List<SuspensionLog> logs = AppDatabase.getInstance().getSuspensionHistory(filterLevel, keyword);
+                
+                String roleFilter = adminRoleComboBox.getValue();
+                
+                logs.stream()
+                    .filter(log -> {
+                        if ("Tất cả".equals(roleFilter) || roleFilter == null) return true;
+                        User u = AppDatabase.getInstance().findUserById(log.getUserId());
+                        if (u == null) return false;
+                        if ("Seller".equals(roleFilter) && u instanceof Seller) return true;
+                        if ("Bidder".equals(roleFilter) && u instanceof Bidder) return true;
+                        return false;
+                    })
+                    .sorted(Comparator.comparing(SuspensionLog::getUserId))
+                    .forEach(log -> historyContainer.getChildren().add(createSuspensionCard(log)));
+            } else {
+                // Lịch sử phiên của seller được chọn
+                String selectedSeller = adminSellerComboBox.getValue();
+                if (selectedSeller == null || selectedSeller.isEmpty()) return;
+                
+                User seller = AppDatabase.getInstance().findUserById(selectedSeller);
+                if (seller instanceof Seller) {
+                    List<Auction> history = AppDatabase.getInstance().getSellerHistory(seller.getId());
+                    history.stream()
+                        .filter(a -> currentFilterType == null || (
+                            (currentFilterType.equals("ART") && a.getItem() instanceof Art) ||
+                            (currentFilterType.equals("ELEC") && a.getItem() instanceof Electronics) ||
+                            (currentFilterType.equals("VEHICLE") && a.getItem() instanceof Vehicle)
+                        ))
+                        .filter(a -> keyword.isEmpty() || a.getItem().getName().toLowerCase().contains(keyword))
+                        .forEach(a -> historyContainer.getChildren().add(createHistoryCard(a, false)));
+                }
+            }
+        } else if (user instanceof Seller) {
+            List<Auction> history = AppDatabase.getInstance().getSellerHistory(user.getId());
+            history.stream()
+                .filter(a -> currentFilterType == null || (
+                    (currentFilterType.equals("ART") && a.getItem() instanceof Art) ||
+                    (currentFilterType.equals("ELEC") && a.getItem() instanceof Electronics) ||
+                    (currentFilterType.equals("VEHICLE") && a.getItem() instanceof Vehicle)
+                ))
+                .filter(a -> keyword.isEmpty() || a.getItem().getName().toLowerCase().contains(keyword))
+                .forEach(a -> historyContainer.getChildren().add(createHistoryCard(a, false)));
+        } else if (user instanceof Bidder) {
+            List<Auction> history = AppDatabase.getInstance().getBidderHistory(user.getId());
+            history.stream()
+                .filter(a -> currentFilterType == null || (
+                    (currentFilterType.equals("ART") && a.getItem() instanceof Art) ||
+                    (currentFilterType.equals("ELEC") && a.getItem() instanceof Electronics) ||
+                    (currentFilterType.equals("VEHICLE") && a.getItem() instanceof Vehicle)
+                ))
+                .filter(a -> keyword.isEmpty() || a.getItem().getName().toLowerCase().contains(keyword))
+                .forEach(a -> historyContainer.getChildren().add(createHistoryCard(a, true)));
+        }
+        
+        if (historyContainer.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("Không có");
+            emptyLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #7F8C8D; -fx-padding: 20;");
+            historyContainer.getChildren().add(emptyLabel);
+        }
+    }
+    
+    private VBox createSuspensionCard(SuspensionLog log) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("item-card");
+        card.setPrefWidth(250);
+        card.setStyle("-fx-border-color: #E74C3C; -fx-border-radius: 5;");
+        
+        User u = AppDatabase.getInstance().findUserById(log.getUserId());
+        String name = u != null ? u.getUsername() : log.getUserId();
+        
+        Label nameLabel = new Label("User: " + name);
+        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        Label levelLabel = new Label("Mức độ: " + (log.getSuspensionLevel() == 3 ? "Vĩnh viễn" : "Lần " + log.getSuspensionLevel()));
+        Label timeLabel = new Label("Thời gian: " + log.getTimestamp().format(DATE_TIME_FORMATTER));
+        Label statusLabel = new Label("Trạng thái: " + log.getStatus());
+        
+        if ("Đã xóa vĩnh viễn".equals(log.getStatus())) {
+            statusLabel.setStyle("-fx-text-fill: #7F8C8D;");
+        } else if ("Đã được khôi phục".equals(log.getStatus())) {
+            statusLabel.setStyle("-fx-text-fill: #2ECC71;");
+            card.setStyle("-fx-border-color: #2ECC71; -fx-border-radius: 5;");
+        } else {
+            statusLabel.setStyle("-fx-text-fill: #E74C3C; -fx-font-weight: bold;");
+        }
+        
+        card.getChildren().addAll(nameLabel, levelLabel, timeLabel, statusLabel);
+        return card;
+    }
+
+    private VBox createHistoryCard(Auction auction, boolean isBidderView) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("item-card");
+        card.setPrefWidth(250);
+
+        boolean isWinner = false;
+        User currentUser = Session.getCurrentUser();
+        if (isBidderView && currentUser != null && currentUser.getId().equals(auction.getHighestBidderId()) && "STOPPED".equals(auction.getStatus())) {
+            isWinner = true;
+            card.setStyle("-fx-background-color: #E8F8F5; -fx-border-color: #2ECC71; -fx-border-radius: 5; -fx-background-radius: 5;");
+        }
+
+        Label nameLabel = new Label(auction.getItem().getName());
+        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+
+        Label timeLabel = new Label(auction.getStartTime().format(DATE_TIME_FORMATTER) + " - " + auction.getStopTime().format(DATE_TIME_FORMATTER));
+        timeLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #7F8C8D;");
+
+        Label statusLabel = new Label();
+        if (isBidderView) {
+            // Find max bid of this bidder
+            double maxBid = 0;
+            if (currentUser != null) {
+                maxBid = auction.getBidHistory().stream()
+                    .filter(b -> b.getBidderId().equals(currentUser.getId()))
+                    .mapToDouble(BidTransaction::getBidAmount)
+                    .max().orElse(0);
+            }
+            statusLabel.setText("Giá bạn đặt: " + String.format("%.0f", maxBid) + " USD");
+            statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #2980B9;");
+        } else {
+            if ("STOPPED".equals(auction.getStatus())) {
+                statusLabel.setText("Giá chốt: " + String.format("%.0f", auction.getCurrentHighestPrice()) + " USD");
+                statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #E67E22;");
+                
+                String winnerName = "Không có";
+                if (auction.getHighestBidderId() != null) {
+                    User w = AppDatabase.getInstance().findUserById(auction.getHighestBidderId());
+                    if (w != null) winnerName = w.getUsername();
+                }
+                Label winnerLabel = new Label("Người thắng: " + winnerName);
+                card.getChildren().add(winnerLabel);
+            } else {
+                statusLabel.setText("Giá hiện tại: " + String.format("%.0f", auction.getCurrentHighestPrice()) + " USD");
+                statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #3498DB;");
+                Label statusInfo = new Label("Đang diễn ra/Sắp tới");
+                card.getChildren().add(statusInfo);
+            }
+        }
+
+        card.getChildren().addAll(nameLabel, timeLabel, statusLabel);
+        card.setOnMouseClicked(e -> showHistoryDetails(auction));
+        return card;
+    }
+
+    @FXML
+    private void showRunningAuctions(ActionEvent event) {
+        isUpcomingTab = false;
+        if (btnTabRunning != null) btnTabRunning.getStyleClass().setAll("button", "btn-primary");
+        if (btnTabUpcoming != null) btnTabUpcoming.getStyleClass().setAll("button", "btn-outline");
+        loadAuctionItems();
+    }
+
+    @FXML
+    private void showUpcomingAuctions(ActionEvent event) {
+        isUpcomingTab = true;
+        if (btnTabUpcoming != null) btnTabUpcoming.getStyleClass().setAll("button", "btn-primary");
+        if (btnTabRunning != null) btnTabRunning.getStyleClass().setAll("button", "btn-outline");
         loadAuctionItems();
     }
 
     private void loadAuctionItems() {
+        if (isHistoryMode) return;
         itemContainer.getChildren().clear();
         User user = Session.getCurrentUser();
 
@@ -480,7 +1061,10 @@ public class MainController {
                         new Electronics("I_E02", "MacBook M4", "8/512", 2600.0, 24, "Mới", "", "Không", "", ""),
                         LocalDateTime.now().minusMinutes(15), LocalDateTime.now().plusHours(3), 2600.0, "RUNNING"));
             }
+            lastAuctionCount = demoAuctions.size();
             demoAuctions.stream()
+                .filter(a -> !a.getStatus().equals("STOPPED"))
+                .filter(a -> isUpcomingTab ? LocalDateTime.now().isBefore(a.getStartTime()) : !LocalDateTime.now().isBefore(a.getStartTime()))
                 .filter(a -> currentFilterType == null || (
                     (currentFilterType.equals("ART") && a.getItem() instanceof Art) ||
                     (currentFilterType.equals("ELEC") && a.getItem() instanceof Electronics) ||
@@ -488,13 +1072,22 @@ public class MainController {
                 ))
                 .forEach(this::createAuctionCard);
         } else {
+            lastAuctionCount = database.getAuctions().size();
             database.getAuctions().stream()
+                .filter(a -> !a.getStatus().equals("STOPPED"))
+                .filter(a -> isUpcomingTab ? LocalDateTime.now().isBefore(a.getStartTime()) : !LocalDateTime.now().isBefore(a.getStartTime()))
                 .filter(a -> currentFilterType == null || (
                     (currentFilterType.equals("ART") && a.getItem() instanceof Art) ||
                     (currentFilterType.equals("ELEC") && a.getItem() instanceof Electronics) ||
                     (currentFilterType.equals("VEHICLE") && a.getItem() instanceof Vehicle)
                 ))
                 .forEach(this::createAuctionCard);
+        }
+        
+        if (itemContainer.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("Không có");
+            emptyLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #7F8C8D; -fx-padding: 20;");
+            itemContainer.getChildren().add(emptyLabel);
         }
     }
 
@@ -525,23 +1118,48 @@ public class MainController {
         Label extraLabel = new Label(extraInfo);
         Label startLabel = new Label("Bắt đầu: " + auction.getStartTime().format(DATE_TIME_FORMATTER));
 
+        Label priceLabel = new Label();
+        priceLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #E67E22; -fx-font-size: 14px;");
+
         Label timerLabel = new Label();
         timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
-            long remaining = auction.getRemainingTime();
-            if (remaining > 0) {
-                long hours = remaining / 3600;
-                long minutes = (remaining % 3600) / 60;
-                long seconds = remaining % 60;
-                timerLabel.setText(String.format("Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+        
+        Runnable updateTimerLabel = () -> {
+            priceLabel.setText("Giá cao nhất: " + String.format("%.0f", auction.getCurrentHighestPrice()) + " $");
+            if (LocalDateTime.now().isBefore(auction.getStartTime())) {
+                long waitSeconds = java.time.Duration.between(LocalDateTime.now(), auction.getStartTime()).getSeconds();
+                long h = waitSeconds / 3600;
+                long m = (waitSeconds % 3600) / 60;
+                long s = waitSeconds % 60;
+                timerLabel.setText(String.format("Sắp bắt đầu: %02d:%02d:%02d", h, m, s));
+                if (!"-fx-text-fill: green; -fx-font-weight: bold;".equals(timerLabel.getStyle())) {
+                    timerLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+                }
             } else {
-                timerLabel.setText("Phiên đấu giá đã kết thúc");
+                long remaining = auction.getRemainingTime();
+                if (remaining > 0) {
+                    long hours = remaining / 3600;
+                    long minutes = (remaining % 3600) / 60;
+                    long seconds = remaining % 60;
+                    timerLabel.setText(String.format("Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+                    if (!"-fx-text-fill: red; -fx-font-weight: bold;".equals(timerLabel.getStyle())) {
+                        timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    }
+                } else {
+                    timerLabel.setText("Phiên đấu giá đã kết thúc");
+                    if (!"-fx-text-fill: red; -fx-font-weight: bold;".equals(timerLabel.getStyle())) {
+                        timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    }
+                }
             }
-        }));
+        };
+        
+        updateTimerLabel.run();
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> updateTimerLabel.run()));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
-        card.getChildren().addAll(nameLabel, typeLabel, extraLabel, startLabel, timerLabel);
+        card.getChildren().addAll(nameLabel, typeLabel, extraLabel, startLabel, priceLabel, timerLabel);
         
         card.setOnMouseClicked(e -> showAuctionDetails(auction));
 
@@ -549,223 +1167,511 @@ public class MainController {
     }
 
     private void showAuctionDetails(Auction auction) {
-        Item item = auction.getItem();
-        User user = Session.getCurrentUser();
-        boolean isBidder = user != null && user.getRole() == AccountRole.BIDDER;
-        boolean isGuest = user == null;
-        boolean canBid = isBidder || isGuest;
-        boolean isAdmin = user != null && user.getRole() == AccountRole.ADMIN;
+        this.activeAuction = auction;
 
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Chi tiết phiên đấu giá");
-        
-        VBox content = new VBox(10);
-        content.setPadding(new javafx.geometry.Insets(15));
-        
-        Label nameLabel = new Label("Tên SP: " + item.getName());
-        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
-        Label descLabel = new Label("Mô tả: " + item.getDescription());
-        Label priceLabel = new Label("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-        priceLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
-        Label statusLabel = new Label("Trạng thái: " + auction.getStatus());
-        Label startLabel = new Label("Bắt đầu: " + auction.getStartTime().format(DATE_TIME_FORMATTER));
-        Label durationLabel = new Label("Thời lượng: " + java.time.Duration.between(auction.getStartTime(), auction.getStopTime()).toMinutes() + " phút");
-        
-        VBox specificDetails = new VBox(5);
+        // Cập nhật dữ liệu cho giao diện chi tiết
+        Item item = auction.getItem();
+        detailNameLabel.setText(item.getName());
+        detailStatusLabel.setText(auction.getStatus());
+        detailDescLabel.setText("Mô tả: " + item.getDescription());
+
+        detailSpecificVBox.getChildren().clear();
         if (item instanceof Art) {
             Art art = (Art) item;
-            specificDetails.getChildren().addAll(new Label("Nghệ sĩ: " + art.getArtist()), new Label("Năm sáng tác: " + art.getCreationYear()));
+            detailSpecificVBox.getChildren().addAll(new Label("Nghệ sĩ: " + art.getArtist()), new Label("Năm sáng tác: " + art.getCreationYear()));
         } else if (item instanceof Electronics) {
             Electronics elec = (Electronics) item;
-            specificDetails.getChildren().addAll(
-                new Label("Bảo hành: " + elec.getWarrantyMonths() + " tháng"),
-                new Label("Tình trạng: " + elec.getCondition())
-            );
+            detailSpecificVBox.getChildren().addAll(new Label("Bảo hành: " + elec.getWarrantyMonths() + " tháng"), new Label("Tình trạng: " + elec.getCondition()));
             if ("Cũ".equals(elec.getCondition())) {
-                specificDetails.getChildren().add(new Label("Thời gian mua: " + elec.getPurchaseDate()));
-                specificDetails.getChildren().add(new Label("Đã sửa chữa: " + elec.getIsRepaired()));
+                detailSpecificVBox.getChildren().add(new Label("Thời gian mua: " + elec.getPurchaseDate()));
+                detailSpecificVBox.getChildren().add(new Label("Đã sửa chữa: " + elec.getIsRepaired()));
                 if ("Có".equals(elec.getIsRepaired())) {
-                    specificDetails.getChildren().addAll(
-                        new Label("Ngày sửa chữa: " + elec.getRepairDate()),
-                        new Label("Phụ tùng thay thế: " + elec.getRepairedParts())
-                    );
+                    detailSpecificVBox.getChildren().addAll(new Label("Ngày sửa chữa: " + elec.getRepairDate()), new Label("Phụ tùng thay thế: " + elec.getRepairedParts()));
                 }
             }
         } else if (item instanceof Vehicle) {
             Vehicle veh = (Vehicle) item;
-            specificDetails.getChildren().addAll(
-                new Label("Hãng: " + veh.getBrand()),
-                new Label("Tình trạng: " + veh.getCondition())
-            );
+            detailSpecificVBox.getChildren().addAll(new Label("Hãng: " + veh.getBrand()), new Label("Tình trạng: " + veh.getCondition()));
             if ("Cũ".equals(veh.getCondition())) {
-                specificDetails.getChildren().addAll(
-                    new Label("Thời gian mua: " + veh.getPurchaseDate()),
-                    new Label("Số km đã đi: " + veh.getMileage() + " km"),
-                    new Label("Đã sửa chữa: " + veh.getIsRepaired())
-                );
+                detailSpecificVBox.getChildren().addAll(new Label("Thời gian mua: " + veh.getPurchaseDate()), new Label("Số km đã đi: " + veh.getMileage() + " km"), new Label("Đã sửa chữa: " + veh.getIsRepaired()));
                 if ("Có".equals(veh.getIsRepaired())) {
-                    specificDetails.getChildren().addAll(
-                        new Label("Ngày sửa chữa: " + veh.getRepairDate()),
-                        new Label("Phụ tùng thay thế: " + veh.getRepairedParts())
-                    );
+                    detailSpecificVBox.getChildren().addAll(new Label("Ngày sửa chữa: " + veh.getRepairDate()), new Label("Phụ tùng thay thế: " + veh.getRepairedParts()));
                 }
             }
         }
 
-        Button bidBtn = new Button(canBid ? "Đặt giá" : "Chỉ Bidder được đặt giá");
-        bidBtn.getStyleClass().add("btn-primary");
-        bidBtn.setMaxWidth(Double.MAX_VALUE);
-        bidBtn.setDisable(!canBid);
-        bidBtn.setOnAction(e -> {
-            dialog.setResult(ButtonType.CANCEL);
-            dialog.close();
-            handleBidAction(auction, priceLabel);
-        });
+        updateAuctionDynamicInfo(auction);
 
-        CategoryAxis xAxis = new CategoryAxis();
-        xAxis.setLabel("Thời gian");
-        NumberAxis yAxis = new NumberAxis();
-        yAxis.setLabel("Giá (USD)");
-        LineChart<String, Number> lineChart = new LineChart<>(xAxis, yAxis);
-        lineChart.setTitle("Lịch sử đấu giá");
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Giá đấu");
-        for (BidTransaction b : auction.getBidHistory()) {
-            series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
+        // Hiển thị nút hành động nếu là Admin
+        detailActionBox.getChildren().clear();
+        if (isAdmin()) {
+            Button stopBtn = new Button("Ngưng phiên"); stopBtn.getStyleClass().add("btn-outline");
+            stopBtn.setOnAction(e -> handleStopAuction(auction));
+            Button deleteBtn = new Button("Xóa phiên"); deleteBtn.getStyleClass().add("btn-outline");
+            deleteBtn.setOnAction(e -> handleDeleteAuction(auction));
+            detailActionBox.getChildren().addAll(stopBtn, deleteBtn);
         }
-        lineChart.getData().add(series);
-        lineChart.setPrefHeight(200);
 
-        Label timerLabel = new Label();
-        timerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold; -fx-font-size: 14px;");
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
-            long remaining = auction.getRemainingTime();
-            if (remaining > 0) {
-                long hours = remaining / 3600;
-                long minutes = (remaining % 3600) / 60;
-                long seconds = remaining % 60;
-                timerLabel.setText(String.format("Thời gian còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+        User user = Session.getCurrentUser();
+        boolean isSeller = user != null && user.getRole() == AccountRole.SELLER;
+        
+        if (bidderSidebar != null) {
+            bidderSidebar.setVisible(!isSeller); 
+            bidderSidebar.setManaged(!isSeller);
+        }
+        if (sellerSidebar != null) {
+            sellerSidebar.setVisible(isSeller); 
+            sellerSidebar.setManaged(isSeller);
+        }
+        
+        if (isSeller) {
+            loadTopBidders();
+        }
+
+        // Tải cấu hình Auto-Bid cho phiên hiện tại
+        AutoBidConfig config = autoBidConfigs.get(auction.getId());
+        if (config != null) {
+            maxBidField.setText(String.valueOf((long)config.maxBid));
+            bidStepField.setText(String.valueOf((long)config.bidStep));
+            autoBidDelayField.setText(String.valueOf(config.delaySeconds));
+            if (config.isActivated) {
+                btnAutoBid.setText("Hủy tự động đấu giá");
+                btnAutoBid.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white;");
+                if (autoBidStatusLabel != null) autoBidStatusLabel.setText("Đang tự động đấu giá");
             } else {
-                timerLabel.setText("Phiên đấu giá đã kết thúc");
-                bidBtn.setDisable(true);
+                btnAutoBid.setText("Tự động đấu giá");
+                btnAutoBid.getStyleClass().setAll("button", "btn-primary");
+                if (autoBidStatusLabel != null) autoBidStatusLabel.setText("");
+            }
+        } else {
+            if (maxBidField != null) maxBidField.clear();
+            if (bidStepField != null) bidStepField.clear();
+            if (autoBidDelayField != null) autoBidDelayField.clear();
+            if (btnAutoBid != null) {
+                btnAutoBid.setText("Tự động đấu giá");
+                btnAutoBid.getStyleClass().setAll("button", "btn-primary");
+            }
+            if (autoBidStatusLabel != null) autoBidStatusLabel.setText("");
+        }
+
+        // Khởi động Timeline cập nhật liên tục mỗi 1 giây
+        if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
+        detailUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
+            Auction latest = database.findAuctionById(activeAuction.getId());
+            if (latest != null) {
+                activeAuction = latest;
+                updateAuctionDynamicInfo(latest);
+                checkAutoBidLogic(latest);
             }
         }));
-        timeline.setCycleCount(Animation.INDEFINITE);
-        timeline.play();
+        detailUpdateTimeline.setCycleCount(Animation.INDEFINITE);
+        detailUpdateTimeline.play();
 
-        content.getChildren().addAll(nameLabel, descLabel, priceLabel, statusLabel, startLabel, durationLabel, specificDetails, lineChart, timerLabel, bidBtn);
-
-        if (isAdmin) {
-            Button stopBtn = new Button("Ngưng phiên");
-            stopBtn.setMaxWidth(Double.MAX_VALUE);
-            stopBtn.setOnAction(e -> {
-                dialog.setResult(ButtonType.CANCEL);
-                dialog.close();
-                handleStopAuction(auction);
-            });
-
-            Button deleteBtn = new Button("Xóa phiên");
-            deleteBtn.setMaxWidth(Double.MAX_VALUE);
-            deleteBtn.setOnAction(e -> {
-                dialog.setResult(ButtonType.CANCEL);
-                dialog.close();
-                handleDeleteAuction(auction);
-            });
-
-            content.getChildren().addAll(stopBtn, deleteBtn);
+        // Chuyển đổi trạng thái giao diện
+        normalSidebar.setVisible(false); normalSidebar.setManaged(false);
+        normalCenterContent.setVisible(false); normalCenterContent.setManaged(false);
+        auctionSidebar.setVisible(true); auctionSidebar.setManaged(true);
+        auctionDetailContent.setVisible(true); auctionDetailContent.setManaged(true);
+        if (detailWinnerBox != null) {
+            detailWinnerBox.setVisible(false); detailWinnerBox.setManaged(false);
         }
-
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.show();
     }
 
-    private void handleBidAction(Auction auction, Label priceLabel) {
+    private void showHistoryDetails(Auction auction) {
+        this.activeAuction = auction;
+        if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
+        
+        Item item = auction.getItem();
+        detailNameLabel.setText(item.getName());
+        detailStatusLabel.setText("ĐÃ KẾT THÚC");
+        detailStatusLabel.setStyle("-fx-background-color: #7F8C8D; -fx-text-fill: white; -fx-padding: 4 10; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 12px;");
+        detailDescLabel.setText("Mô tả: " + item.getDescription());
+        
+        detailSpecificVBox.getChildren().clear();
+        if (item instanceof Art) {
+            Art art = (Art) item;
+            detailSpecificVBox.getChildren().addAll(new Label("Nghệ sĩ: " + art.getArtist()), new Label("Năm sáng tác: " + art.getCreationYear()));
+        } else if (item instanceof Electronics) {
+            Electronics elec = (Electronics) item;
+            detailSpecificVBox.getChildren().addAll(new Label("Bảo hành: " + elec.getWarrantyMonths() + " tháng"), new Label("Tình trạng: " + elec.getCondition()));
+        } else if (item instanceof Vehicle) {
+            Vehicle veh = (Vehicle) item;
+            detailSpecificVBox.getChildren().addAll(new Label("Hãng: " + veh.getBrand()), new Label("Tình trạng: " + veh.getCondition()));
+        }
+        
+        detailPriceLabel.setText("Giá chốt: " + auction.getCurrentHighestPrice() + " USD");
+        
+        String winnerName = "Không có";
+        if (auction.getHighestBidderId() != null) {
+            User w = AppDatabase.getInstance().findUserById(auction.getHighestBidderId());
+            if (w != null) winnerName = w.getUsername();
+        }
+        detailBidderLabel.setText("Người chiến thắng: " + winnerName);
+        detailTimerLabel.setText("Trạng thái: " + ("STOPPED".equals(auction.getStatus()) ? "Đã kết thúc" : "Đang diễn ra/Sắp tới"));
+        detailTimerLabel.setStyle("-fx-text-fill: #7F8C8D; -fx-font-weight: bold;");
+        
+        detailActionBox.getChildren().clear();
+        
+        if (bidderSidebar != null) {
+            bidderSidebar.setVisible(false); bidderSidebar.setManaged(false);
+        }
+        if (sellerSidebar != null) {
+            sellerSidebar.setVisible(false); sellerSidebar.setManaged(false);
+        }
+        
+        // Show Winner Box
+        if (detailWinnerBox != null) {
+            detailWinnerBox.setVisible(true); detailWinnerBox.setManaged(true);
+            detailWinnerText.setText(winnerName + " - " + String.format("%.0f", auction.getCurrentHighestPrice()) + " USD");
+            
+            User currentUser = Session.getCurrentUser();
+            if (currentUser instanceof Bidder) {
+                double maxBid = auction.getBidHistory().stream()
+                    .filter(b -> b.getBidderId().equals(currentUser.getId()))
+                    .mapToDouble(BidTransaction::getBidAmount)
+                    .max().orElse(0);
+                detailBidderHistoryText.setText("Bạn đã đặt giá cao nhất: " + String.format("%.0f", maxBid) + " USD");
+                detailBidderHistoryText.setVisible(true); detailBidderHistoryText.setManaged(true);
+            } else {
+                detailBidderHistoryText.setVisible(false); detailBidderHistoryText.setManaged(false);
+            }
+        }
+        
+        // Vẽ lại biểu đồ
+        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(auction.getId());
+        int newSize = history != null ? history.size() : 0;
+        detailChart.setAnimated(false);
+        detailChart.getData().clear();
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        if (history != null) {
+            for (BidTransaction b : history) {
+                series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
+            }
+        }
+        detailChart.getData().add(series);
+        detailChart.setUserData(newSize);
+
+        historyCenterContent.setVisible(false); historyCenterContent.setManaged(false);
+        auctionSidebar.setVisible(false); auctionSidebar.setManaged(false); // Hide sidebar in history
+        normalSidebar.setVisible(true); normalSidebar.setManaged(true);
+        auctionDetailContent.setVisible(true); auctionDetailContent.setManaged(true);
+    }
+
+    private void updateAuctionDynamicInfo(Auction auction) {
+        detailPriceLabel.setText("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
+        
+        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(auction.getId());
+        if (history != null && !history.isEmpty()) {
+            String bidderId = history.get(history.size()-1).getBidderId();
+            String bidderUsername = bidderId.startsWith("U_") ? bidderId.substring(2) : bidderId;
+            User bidder = AppDatabase.getInstance().findUserByUsername(bidderUsername);
+            String displayName = (bidder != null && bidder.getFullName() != null && !bidder.getFullName().isEmpty()) ? bidder.getFullName() : bidderUsername;
+            detailBidderLabel.setText("Người đặt giá cao nhất: " + displayName);
+        } else {
+            detailBidderLabel.setText("Người đặt giá cao nhất: Chưa có");
+        }
+
+        if (LocalDateTime.now().isBefore(auction.getStartTime())) {
+            long waitSeconds = java.time.Duration.between(LocalDateTime.now(), auction.getStartTime()).getSeconds();
+            long h = waitSeconds / 3600;
+            long m = (waitSeconds % 3600) / 60;
+            long s = waitSeconds % 60;
+            detailTimerLabel.setText(String.format("Sắp bắt đầu: %02d:%02d:%02d", h, m, s));
+            if (!"-fx-text-fill: green; -fx-font-weight: bold;".equals(detailTimerLabel.getStyle())) {
+                detailTimerLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+            }
+        } else {
+            long remaining = auction.getRemainingTime();
+            if (remaining > 0) {
+                long h = remaining / 3600;
+                long m = (remaining % 3600) / 60;
+                long s = remaining % 60;
+                detailTimerLabel.setText(String.format("Thời gian còn lại: %02d:%02d:%02d", h, m, s));
+                if (!"-fx-text-fill: red; -fx-font-weight: bold;".equals(detailTimerLabel.getStyle())) {
+                    detailTimerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                }
+            } else {
+                detailTimerLabel.setText("Phiên đấu giá đã kết thúc");
+                if (!"-fx-text-fill: red; -fx-font-weight: bold;".equals(detailTimerLabel.getStyle())) {
+                    detailTimerLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+                    detailStatusLabel.setText("KẾT THÚC");
+                    detailStatusLabel.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-padding: 4 10; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 12px;");
+                }
+            }
+        }
+
+        // Vẽ lại biểu đồ
+        int newSize = history != null ? history.size() : 0;
+        if (detailChart.getUserData() == null || (int) detailChart.getUserData() != newSize) {
+            detailChart.setAnimated(false);
+            detailChart.getData().clear();
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            if (history != null) {
+                for (BidTransaction b : history) {
+                    series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
+                }
+            }
+            detailChart.getData().add(series);
+            detailChart.setUserData(newSize);
+        }
+    }
+
+    @FXML public void handleBackToList() {
+        if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
+        activeAuction = null;
+        
+        auctionSidebar.setVisible(false); auctionSidebar.setManaged(false);
+        auctionDetailContent.setVisible(false); auctionDetailContent.setManaged(false);
+        
+        if (adminUsersContent != null) {
+            adminUsersContent.setVisible(false); adminUsersContent.setManaged(false);
+        }
+        
+        normalSidebar.setVisible(true); normalSidebar.setManaged(true);
+        normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
+        
+        loadAuctionItems();
+    }
+
+    @FXML public void handleQuickBid500() { placeBidAndUpdate(500); }
+    @FXML public void handleQuickBid1000() { placeBidAndUpdate(1000); }
+    @FXML public void handleQuickBid2000() { placeBidAndUpdate(2000); }
+    @FXML public void handleQuickBid5000() { placeBidAndUpdate(5000); }
+
+    private void placeBidAndUpdate(double increment) {
+        if (activeAuction == null || activeAuction.getRemainingTime() <= 0) {
+            showAlert(Alert.AlertType.WARNING, "Lỗi", "Phiên đấu giá đã kết thúc hoặc không khả dụng.");
+            return;
+        }
         User user = Session.getCurrentUser();
         boolean isDemo = user == null;
-
         if (!isDemo && !(user instanceof Bidder)) {
             showAlert(Alert.AlertType.WARNING, "Không đủ quyền", "Chỉ tài khoản Bidder được đặt giá.");
             return;
         }
-
-        Item item = auction.getItem();
-
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Đấu giá" + (isDemo ? " (Bản Dùng Thử)" : ""));
-        dialog.setHeaderText(
-                "Sản phẩm: " + item.getName() + "\nGiá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-        TextField bidAmountField = new TextField();
-        bidAmountField.setPromptText("Nhập giá đấu (USD)");
-        bidAmountField.setPrefColumnCount(14);
-
-        bidAmountField.setText(String.valueOf(auction.getCurrentHighestPrice()));
-
-        Label quickBidLabel = new Label("Tăng nhanh:");
-
-        HBox quickBidBox = new HBox(8);
-        for (double increment : QUICK_BID_INCREMENTS) {
-            Button quickBtn = new Button("+" + ((long) increment));
-            quickBtn.getStyleClass().add("btn-outline");
-            quickBtn.setOnAction(e -> {
-                double base;
-                try {
-                    String current = bidAmountField.getText() == null ? "" : bidAmountField.getText().trim();
-                    base = current.isEmpty() ? auction.getCurrentHighestPrice() : Double.parseDouble(current);
-                } catch (NumberFormatException ex) {
-                    base = auction.getCurrentHighestPrice();
-                }
-                double next = base + increment;
-                if (next <= auction.getCurrentHighestPrice()) {
-                    next = auction.getCurrentHighestPrice() + increment;
-                }
-                bidAmountField.setText(formatBidAmount(next));
-            });
-            quickBidBox.getChildren().add(quickBtn);
+        
+        double nextBid = activeAuction.getCurrentHighestPrice() + increment;
+        String bidderId = isDemo ? "GUEST" : user.getId();
+        BidTransaction transaction = new BidTransaction(UUID.randomUUID().toString(), activeAuction.getId(), bidderId, nextBid, LocalDateTime.now());
+        
+        boolean success = activeAuction.placeBid(transaction);
+        if (success) {
+            updateAuctionDynamicInfo(activeAuction);
+            if (!isDemo) sendBidToServer(transaction);
+            if (bidSuccessLabel != null) bidSuccessLabel.setText("Thành công");
+        } else {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể đặt giá lúc này!");
         }
+    }
 
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
-        content.getChildren().addAll(new Label("Giá đấu (USD):"), bidAmountField, quickBidLabel, quickBidBox);
+    @FXML public void handleCustomBid() {
+        if (activeAuction == null || activeAuction.getRemainingTime() <= 0) {
+            showAlert(Alert.AlertType.WARNING, "Lỗi", "Phiên đấu giá đã kết thúc hoặc không khả dụng.");
+            return;
+        }
+        User user = Session.getCurrentUser();
+        boolean isDemo = user == null;
+        if (!isDemo && !(user instanceof Bidder)) {
+            showAlert(Alert.AlertType.WARNING, "Không đủ quyền", "Chỉ tài khoản Bidder được đặt giá.");
+            return;
+        }
+        
+        try {
+            double customAmount = Double.parseDouble(customBidField.getText().trim());
+            if (customAmount < 100 || customAmount > 10000) {
+                showAlert(Alert.AlertType.WARNING, "Lỗi", "Số tiền phải từ 100 - 10000 USD.");
+                return;
+            }
+            
+            double nextBid = activeAuction.getCurrentHighestPrice() + customAmount;
+            String bidderId = isDemo ? "GUEST" : user.getId();
+            BidTransaction transaction = new BidTransaction(UUID.randomUUID().toString(), activeAuction.getId(), bidderId, nextBid, LocalDateTime.now());
+            
+            boolean success = activeAuction.placeBid(transaction);
+            if (success) {
+                updateAuctionDynamicInfo(activeAuction);
+                if (!isDemo) sendBidToServer(transaction);
+                if (bidSuccessLabel != null) bidSuccessLabel.setText("Thành công");
+                customBidField.clear();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể đặt giá lúc này!");
+            }
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.WARNING, "Lỗi", "Số tiền không hợp lệ.");
+        }
+    }
 
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(createSubmitButton("Đặt giá"), ButtonType.CANCEL);
-
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isEmpty() || result.get().getButtonData() != ButtonBar.ButtonData.OK_DONE) {
+    @FXML public void handleSaveAutoBid() {
+        if (activeAuction == null) return;
+        
+        AutoBidConfig currentConfig = autoBidConfigs.get(activeAuction.getId());
+        boolean isActivated = (currentConfig != null && currentConfig.isActivated);
+        
+        if (isActivated) {
+            // Hủy tự động đấu giá
+            if (currentConfig != null) {
+                currentConfig.isActivated = false;
+                autoBidConfigs.put(activeAuction.getId(), currentConfig);
+            }
+            btnAutoBid.setText("Tự động đấu giá");
+            btnAutoBid.getStyleClass().setAll("button", "btn-primary");
+            if (autoBidStatusLabel != null) autoBidStatusLabel.setText("");
+            if (bidSuccessLabel != null) bidSuccessLabel.setText("");
             return;
         }
 
+        double maxBid = 0;
+        double bidStep = 0;
+        int delay = 1;
+
         try {
-            double bidAmount = Double.parseDouble(bidAmountField.getText().trim());
-            if (bidAmount <= auction.getCurrentHighestPrice()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá đặt phải cao hơn hiện tại!");
-                return;
+            maxBid = Double.parseDouble(maxBidField.getText().trim());
+            bidStep = Double.parseDouble(bidStepField.getText().trim());
+            
+            if (maxBid < 100 || maxBid > 1000000) {
+                throw new IllegalArgumentException("Giá tối đa phải từ 100 đến 1,000,000 USD");
             }
-
-            String bidderId = isDemo ? "GUEST" : user.getId();
-            BidTransaction transaction = new BidTransaction(
-                    UUID.randomUUID().toString(),
-                    auction.getId(),
-                    bidderId,
-                    bidAmount,
-                    LocalDateTime.now());
-
-            boolean success = auction.placeBid(transaction);
-
-            if (success) {
-                priceLabel.setText("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
-                if (!isDemo) {
-                    sendBidToServer(transaction);
-                }
-                showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã đặt giá: " + bidAmount + " USD"
-                        + (isDemo ? "\n\nĐây là phiên dùng thử, dữ liệu không được lưu." : ""));
-            } else {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể đặt giá cho phiên này!");
+            if (bidStep < 100 || bidStep > 10000) {
+                throw new IllegalArgumentException("Bước giá phải từ 100 đến 10,000 USD");
             }
-        } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.WARNING, "Chú ý", "Vui lòng nhập số tiền hợp lệ.");
+            
+            String delayStr = autoBidDelayField.getText().trim();
+            if (!delayStr.isEmpty()) {
+                delay = Integer.parseInt(delayStr);
+            }
+            if (delay < 1) delay = 1;
+            
+        } catch (IllegalArgumentException e) {
+            showAlert(Alert.AlertType.WARNING, "Dữ liệu không hợp lệ", e.getMessage());
+            return;
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.WARNING, "Dữ liệu không hợp lệ", "Vui lòng nhập số hợp lệ.");
+            return;
         }
+        
+        autoBidConfigs.put(activeAuction.getId(), new AutoBidConfig(true, maxBid, bidStep, delay));
+        btnAutoBid.setText("Hủy tự động đấu giá");
+        btnAutoBid.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white;");
+        if (autoBidStatusLabel != null) autoBidStatusLabel.setText("Đang tự động đấu giá");
+        if (bidSuccessLabel != null) bidSuccessLabel.setText("");
+    }
+
+    private void checkAutoBidLogic(Auction latestAuction) {
+        User user = Session.getCurrentUser();
+        if (user == null || latestAuction.getRemainingTime() <= 0) return;
+        
+        AutoBidConfig config = autoBidConfigs.get(latestAuction.getId());
+        if (config == null || !config.isActivated) return;
+
+        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(latestAuction.getId());
+        String currentHighestBidder = (history != null && !history.isEmpty()) ? history.get(history.size()-1).getBidderId() : "";
+        
+        // Nếu mình không phải là người đặt giá cao nhất và có thể đấu giá tiếp
+        if (!user.getId().equals(currentHighestBidder)) {
+            double nextBid = latestAuction.getCurrentHighestPrice() + config.bidStep;
+            if (nextBid <= config.maxBid && !config.isWaitingToBid) {
+                config.isWaitingToBid = true;
+                System.out.println("[Auto-Bid] Chuẩn bị tự động đặt giá sau " + config.delaySeconds + " giây...");
+                
+                if (autoBidDelayTimeline != null) autoBidDelayTimeline.stop();
+                autoBidDelayTimeline = new Timeline(new KeyFrame(Duration.seconds(config.delaySeconds), ev -> {
+                    // Kiểm tra lại sau độ trễ
+                    Auction recheckedAuction = database.findAuctionById(latestAuction.getId());
+                    if (recheckedAuction != null && recheckedAuction.getRemainingTime() > 0) {
+                        List<BidTransaction> recheckedHistory = AppDatabase.getInstance().getBidHistory(recheckedAuction.getId());
+                        String recheckedBidder = (recheckedHistory != null && !recheckedHistory.isEmpty()) ? recheckedHistory.get(recheckedHistory.size()-1).getBidderId() : "";
+                        
+                        double recheckedNextBid = recheckedAuction.getCurrentHighestPrice() + config.bidStep;
+                        if (!user.getId().equals(recheckedBidder) && recheckedNextBid <= config.maxBid) {
+                            BidTransaction transaction = new BidTransaction(UUID.randomUUID().toString(), recheckedAuction.getId(), user.getId(), recheckedNextBid, LocalDateTime.now());
+                            boolean success = recheckedAuction.placeBid(transaction);
+                            if (success) {
+                                sendBidToServer(transaction);
+                                System.out.println("[Auto-Bid] Đã tự động đặt giá: " + recheckedNextBid + " USD");
+                                if (activeAuction != null && activeAuction.getId().equals(recheckedAuction.getId())) {
+                                    updateAuctionDynamicInfo(recheckedAuction);
+                                    if (isSellerView()) loadTopBidders();
+                                }
+                            }
+                        }
+                    }
+                    config.isWaitingToBid = false;
+                }));
+                autoBidDelayTimeline.setCycleCount(1);
+                autoBidDelayTimeline.play();
+            }
+        }
+    }
+
+    private boolean isSellerView() {
+        User user = Session.getCurrentUser();
+        return user != null && user.getRole() == AccountRole.SELLER;
+    }
+
+    private void loadTopBidders() {
+        if (activeAuction == null || topBiddersContainer == null) return;
+        topBiddersContainer.getChildren().clear();
+        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(activeAuction.getId());
+        if (history == null || history.isEmpty()) {
+            topBiddersContainer.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+            return;
+        }
+        
+        // Tạo một bản sao và sắp xếp từ cao xuống thấp
+        List<BidTransaction> sortedHistory = new ArrayList<>(history);
+        sortedHistory.sort((a, b) -> Double.compare(b.getBidAmount(), a.getBidAmount()));
+        int count = 0;
+        Set<String> addedUsers = new HashSet<>();
+        
+        for (BidTransaction b : sortedHistory) {
+            if (count >= 5) break;
+            if (addedUsers.add(b.getBidderId())) {
+                String bidderId = b.getBidderId();
+                String bidderUsername = bidderId.startsWith("U_") ? bidderId.substring(2) : bidderId;
+                User bidder = AppDatabase.getInstance().findUserByUsername(bidderUsername);
+                String displayName = (bidder != null && bidder.getFullName() != null && !bidder.getFullName().isEmpty()) ? bidder.getFullName() : bidderUsername;
+                
+                Label lbl = new Label(displayName + " - " + b.getBidAmount() + " USD");
+                lbl.setStyle("-fx-text-fill: white;");
+                topBiddersContainer.getChildren().add(lbl);
+                count++;
+            }
+        }
+    }
+
+    @FXML public void handleShowAllBidders() {
+        if (activeAuction == null) return;
+        
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Toàn bộ lịch sử đấu giá");
+        dialog.setHeaderText("Lịch sử đấu giá của " + activeAuction.getItem().getName());
+        
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(activeAuction.getId());
+        if (history != null && !history.isEmpty()) {
+            List<BidTransaction> sortedHistory = new ArrayList<>(history);
+            sortedHistory.sort((a, b) -> Double.compare(b.getBidAmount(), a.getBidAmount()));
+            for (BidTransaction b : sortedHistory) {
+                String bidderId = b.getBidderId();
+                String bidderUsername = bidderId.startsWith("U_") ? bidderId.substring(2) : bidderId;
+                User bidder = AppDatabase.getInstance().findUserByUsername(bidderUsername);
+                String displayName = (bidder != null && bidder.getFullName() != null && !bidder.getFullName().isEmpty()) ? bidder.getFullName() : bidderUsername;
+                
+                Label lbl = new Label(displayName + " - " + b.getBidAmount() + " USD (" + b.getTimestamp().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) + ")");
+                container.getChildren().add(lbl);
+            }
+        } else {
+            container.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+        }
+        
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(container);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportHeight(300);
+        
+        dialog.getDialogPane().setContent(scroll);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.showAndWait();
     }
 
     private void handleStopAuction(Auction auction) {
@@ -775,7 +1681,7 @@ public class MainController {
         }
 
         if (database.stopAuction(auction.getId())) {
-            loadAuctionItems();
+            handleBackToList();
             showAlert(Alert.AlertType.INFORMATION, "Đã ngưng", "Phiên đấu giá đã được ngưng.");
         } else {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể ngưng phiên đấu giá.");
@@ -789,7 +1695,7 @@ public class MainController {
         }
 
         if (database.deleteAuction(auction.getId())) {
-            loadAuctionItems();
+            handleBackToList();
             showAlert(Alert.AlertType.INFORMATION, "Đã xóa", "Phiên đấu giá đã được xóa.");
         } else {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể xóa phiên đấu giá.");
@@ -923,7 +1829,10 @@ public class MainController {
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) itemContainer.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            if (wasMaximized) stage.setMaximized(true);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -12,6 +12,7 @@ public class Auction extends Entity {
     private double currentHighestPrice;
     private String status;
     private String highestBidderId;
+    private String sellerId;
     private List<BidTransaction> bidHistory;
 
     public Auction(String id, Item item, LocalDateTime startTime, LocalDateTime stopTime,
@@ -55,6 +56,14 @@ public class Auction extends Entity {
         return Duration.between(LocalDateTime.now(), stopTime).getSeconds();
     }
 
+    // Thời gian còn lại chính xác đến mili giây (dùng cho Sniper Protection)
+    public double getRemainingTimeSecondsFractional() {
+        if (LocalDateTime.now().isAfter(stopTime)) {
+            return 0;
+        }
+        return Duration.between(LocalDateTime.now(), stopTime).toMillis() / 1000.0;
+    }
+
     public double getCurrentHighestPrice() {
         return currentHighestPrice;
     }
@@ -69,6 +78,14 @@ public class Auction extends Entity {
 
     public List<BidTransaction> getBidHistory() {
         return bidHistory;
+    }
+
+    public String getSellerId() {
+        return sellerId;
+    }
+
+    public void setSellerId(String sellerId) {
+        this.sellerId = sellerId;
     }
 
     public void setItem(Item item) {
@@ -115,6 +132,13 @@ public class Auction extends Entity {
         if (bid.getBidAmount() <= currentHighestPrice) {
             System.out.println("Giá bid phải cao hơn giá hiện tại!");
             return false;
+        }
+
+        // Sniper Protection: Nếu bid đặt ở 0.5s cuối cùng, gia hạn thêm 0.5s
+        double remainingFractional = getRemainingTimeSecondsFractional();
+        if (remainingFractional >= 0 && remainingFractional <= 0.5) {
+            stopTime = stopTime.plusNanos(500_000_000); // 500 milliseconds
+            System.out.println("Sniper Protection: Phiên đấu giá " + getId() + " được gia hạn thêm 0.5s");
         }
 
         currentHighestPrice = bid.getBidAmount();

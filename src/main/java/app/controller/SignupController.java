@@ -75,16 +75,29 @@ public class SignupController {
         }
 
         User user = createUser(selectedRole, email, password);
+        user.setFullName(fullName);
+        if (selectedRole == AccountRole.SELLER) {
+            user.setStatus("PENDING");
+        } else {
+            user.setStatus("ACTIVE");
+        }
+
         if (!database.addUser(user)) {
             showMessage("Không thể tạo tài khoản!", "red");
             return;
         }
 
-        showMessage("Đăng ký thành công!", "green");
-
-        PauseTransition pause = new PauseTransition(Duration.seconds(1.2));
-        pause.setOnFinished(e -> goBackToLogin());
-        pause.play();
+        if (selectedRole == AccountRole.SELLER) {
+            showMessage("Đăng ký thành công! Tài khoản cần được Admin duyệt.", "green");
+            PauseTransition pause = new PauseTransition(Duration.seconds(2.5));
+            pause.setOnFinished(e -> goBackToLogin());
+            pause.play();
+        } else {
+            showMessage("Đăng ký thành công!", "green");
+            PauseTransition pause = new PauseTransition(Duration.seconds(1.2));
+            pause.setOnFinished(e -> goBackToLogin());
+            pause.play();
+        }
     }
 
     @FXML
@@ -112,7 +125,10 @@ public class SignupController {
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) fullNameField.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            if (wasMaximized) stage.setMaximized(true);
             stage.setTitle("Đăng nhập");
         } catch (Exception e) {
             e.printStackTrace();

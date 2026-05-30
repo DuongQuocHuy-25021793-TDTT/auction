@@ -72,13 +72,8 @@ public class ClientHandler implements Runnable {
             AppDatabase.getInstance().updateAuctionPrice(auction.getId(), auction.getCurrentHighestPrice(), auction.getHighestBidderId());
             AppDatabase.getInstance().saveBidTransaction(bid);
             
-            // Gia hạn thời gian nếu còn dưới 60 giây
-            long remaining = auction.getRemainingTime();
-            if (remaining > 0 && remaining < 60) {
-                auction.setStopTime(auction.getStopTime().plusSeconds(60));
-                AppDatabase.getInstance().updateAuctionStopTime(auction.getId(), auction.getStopTime().toString());
-                System.out.println("Đã tự động gia hạn thêm 60 giây cho phiên đấu giá: " + auction.getId());
-            }
+            // Cập nhật lại stopTime lên Database (để lưu Sniper Protection nếu có)
+            AppDatabase.getInstance().updateAuctionStopTime(auction.getId(), auction.getStopTime().toString());
 
             System.out.println("Server đã cập nhật giá mới và lưu vào CSDL: " + auction.getCurrentHighestPrice());
         } else {

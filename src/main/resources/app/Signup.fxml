@@ -12,7 +12,8 @@
 <StackPane prefHeight="600.0" prefWidth="800.0"
            xmlns="http://javafx.com/javafx/21"
            xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="app.controller.SignupController">
+           fx:controller="app.controller.SignupController"
+           stylesheets="@style.css">
 
     <children>
         <VBox alignment="CENTER" spacing="15.0" prefWidth="380.0">
@@ -22,10 +23,10 @@
 
             <Label text="TẠO TÀI KHOẢN" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
 
-            <TextField fx:id="fullNameField" promptText="Họ và tên"/>
-            <TextField fx:id="emailField" promptText="Email hoặc tên đăng nhập"/>
-            <PasswordField fx:id="passwordField" promptText="Mật khẩu"/>
-            <PasswordField fx:id="confirmPasswordField" promptText="Xác nhận mật khẩu"/>
+            <TextField fx:id="fullNameField" promptText="Họ và tên" onAction="#handleRegisterAction"/>
+            <TextField fx:id="emailField" promptText="Email hoặc tên đăng nhập" onAction="#handleRegisterAction"/>
+            <PasswordField fx:id="passwordField" promptText="Mật khẩu" onAction="#handleRegisterAction"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="Xác nhận mật khẩu" onAction="#handleRegisterAction"/>
             <ComboBox fx:id="roleComboBox" maxWidth="Infinity" promptText="Loại tài khoản"/>
 
             <Label fx:id="errorLabel" textFill="RED" visible="false"/>

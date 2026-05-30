@@ -14,6 +14,7 @@ public class Main extends Application {
         
         primaryStage.setTitle("Hệ thống Đấu giá");
         primaryStage.setScene(new Scene(root));
+        primaryStage.setMaximized(true);
         primaryStage.show();
     }
 

@@ -22,6 +22,7 @@ import app.model.Item;
 import app.model.Seller;
 import app.model.User;
 import app.model.Vehicle;
+import app.model.SuspensionLog;
 
 public class AppDatabase {
     private static final AppDatabase INSTANCE = new AppDatabase();
@@ -33,6 +34,9 @@ public class AppDatabase {
         migrateElectronicsColumns();
         migrateAuctionsColumns();
         migrateLegacyAccountRoles();
+        migrateAccountsColumns();
+        createSuspensionLogsTable();
+        cleanUpSuspensionLogs();
 
         ensureDefaultAccounts();
     }
@@ -77,6 +81,9 @@ public class AppDatabase {
             if (!columnExists(conn, "Auctions", "highestBidderId")) {
                 stmt.executeUpdate("ALTER TABLE Auctions ADD COLUMN highestBidderId TEXT");
             }
+            if (!columnExists(conn, "Auctions", "sellerId")) {
+                stmt.executeUpdate("ALTER TABLE Auctions ADD COLUMN sellerId TEXT");
+            }
         } catch (SQLException e) {
             System.err.println("Lỗi migrate cột Auctions: " + e.getMessage());
         }
@@ -102,6 +109,104 @@ public class AppDatabase {
             stmt.executeUpdate("UPDATE Accounts SET role = 'BIDDER' WHERE role IS NULL OR role = ''");
         } catch (SQLException e) {
             System.err.println("Lỗi migrate role tài khoản: " + e.getMessage());
+        }
+    }
+
+    private void migrateAccountsColumns() {
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            if (!columnExists(conn, "Accounts", "fullName")) stmt.executeUpdate("ALTER TABLE Accounts ADD COLUMN fullName TEXT");
+            if (!columnExists(conn, "Accounts", "status")) stmt.executeUpdate("ALTER TABLE Accounts ADD COLUMN status TEXT DEFAULT 'ACTIVE'");
+            if (!columnExists(conn, "Accounts", "suspensionCount")) stmt.executeUpdate("ALTER TABLE Accounts ADD COLUMN suspensionCount INTEGER DEFAULT 0");
+            if (!columnExists(conn, "Accounts", "suspendedUntil")) stmt.executeUpdate("ALTER TABLE Accounts ADD COLUMN suspendedUntil INTEGER DEFAULT 0");
+            if (!columnExists(conn, "Accounts", "lastSuspensionTime")) stmt.executeUpdate("ALTER TABLE Accounts ADD COLUMN lastSuspensionTime INTEGER DEFAULT 0");
+        } catch (SQLException e) {
+            System.err.println("Lỗi migrate cột Accounts: " + e.getMessage());
+        }
+    }
+
+    private void createSuspensionLogsTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS SuspensionLogs (" +
+                "id TEXT PRIMARY KEY, userId TEXT, suspensionLevel INTEGER, timestamp TEXT, status TEXT);";
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.err.println("Lỗi tạo bảng SuspensionLogs: " + e.getMessage());
+        }
+    }
+
+    private void cleanUpSuspensionLogs() {
+        // Log sẽ tự động được quét và xóa dựa trên rule 
+        String sqlSelect = "SELECT * FROM SuspensionLogs";
+        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sqlSelect)) {
+            while (rs.next()) {
+                String logId = rs.getString("id");
+                String userId = rs.getString("userId");
+                int level = rs.getInt("suspensionLevel");
+                LocalDateTime timestamp = LocalDateTime.parse(rs.getString("timestamp"));
+                String status = rs.getString("status");
+                
+                long currentMillis = System.currentTimeMillis();
+                long logMillis = timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long diffMillis = currentMillis - logMillis;
+                
+                long oneYear = 365L * 24 * 60 * 60 * 1000;
+                long threeMonths = 90L * 24 * 60 * 60 * 1000;
+                long oneWeek = 7L * 24 * 60 * 60 * 1000;
+
+                boolean shouldUpdate = false;
+                boolean shouldDelete = false;
+                String newStatus = status;
+
+                if (level == 3) {
+                    // Vĩnh viễn: đổi trạng thái thành Đã xóa vĩnh viễn, sau 1 tuần thì xóa hẳn
+                    if (!"Đã xóa vĩnh viễn".equals(status)) {
+                        newStatus = "Đã xóa vĩnh viễn";
+                        shouldUpdate = true;
+                    }
+                    if (diffMillis > oneWeek) {
+                        shouldDelete = true;
+                    }
+                } else {
+                    // Lần 1 & 2
+                    // Nếu > 1 năm và chưa vi phạm thêm, trạng thái thành Đã được khôi phục
+                    // Kiểm tra xem user có vi phạm thêm không: 
+                    User u = findUserByUsername(userId.startsWith("U_") ? userId.substring(2) : userId); // userId là id
+                    boolean noFurtherViolation = false;
+                    if (u != null) {
+                        // Nếu số lần vi phạm của user == level (tức là không tăng thêm) hoặc đã được reset
+                        if (u.getSuspensionCount() <= level) {
+                            noFurtherViolation = true;
+                        }
+                    }
+                    
+                    if (diffMillis > oneYear && noFurtherViolation) {
+                        if (!"Đã được khôi phục".equals(status)) {
+                            newStatus = "Đã được khôi phục";
+                            shouldUpdate = true;
+                        }
+                    }
+                    
+                    // Xóa nếu quá 1 năm + 3 tháng (chỉ khi đã khôi phục)
+                    if ("Đã được khôi phục".equals(newStatus) && diffMillis > (oneYear + threeMonths)) {
+                        shouldDelete = true;
+                    }
+                }
+                
+                if (shouldDelete) {
+                    try (PreparedStatement delStmt = conn.prepareStatement("DELETE FROM SuspensionLogs WHERE id = ?")) {
+                        delStmt.setString(1, logId);
+                        delStmt.executeUpdate();
+                    }
+                } else if (shouldUpdate) {
+                    try (PreparedStatement updStmt = conn.prepareStatement("UPDATE SuspensionLogs SET status = ? WHERE id = ?")) {
+                        updStmt.setString(1, newStatus);
+                        updStmt.setString(2, logId);
+                        updStmt.executeUpdate();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi clean up SuspensionLogs: " + e.getMessage());
         }
     }
 
@@ -214,11 +319,16 @@ public class AppDatabase {
             return false;
         }
 
-        String sql = "INSERT INTO Accounts (username, password, role) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO Accounts (username, password, role, fullName, status, suspensionCount, suspendedUntil, lastSuspensionTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, normalizeUsername(user.getUsername()));
             pstmt.setString(2, app.utils.PasswordUtil.hashPassword(user.getPassword()));
             pstmt.setString(3, user.getRole().name());
+            pstmt.setString(4, user.getFullName());
+            pstmt.setString(5, user.getStatus() != null ? user.getStatus() : "ACTIVE");
+            pstmt.setInt(6, user.getSuspensionCount());
+            pstmt.setLong(7, user.getSuspendedUntil());
+            pstmt.setLong(8, user.getLastSuspensionTime());
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -281,6 +391,36 @@ public class AppDatabase {
         }
     }
 
+    public synchronized User findUserByUsername(String username) {
+        String sql = "SELECT * FROM Accounts WHERE username = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, normalizeUsername(username));
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return createUserFromResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public synchronized boolean updateUserStatus(User user) {
+        String sql = "UPDATE Accounts SET status = ?, suspensionCount = ?, suspendedUntil = ?, lastSuspensionTime = ? WHERE username = ?";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, user.getStatus());
+            pstmt.setInt(2, user.getSuspensionCount());
+            pstmt.setLong(3, user.getSuspendedUntil());
+            pstmt.setLong(4, user.getLastSuspensionTime());
+            pstmt.setString(5, normalizeUsername(user.getUsername()));
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi cập nhật trạng thái User: " + e.getMessage());
+            return false;
+        }
+    }
+
     public synchronized List<User> getUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT * FROM Accounts";
@@ -302,15 +442,27 @@ public class AppDatabase {
         AccountRole role = parseRole(rs.getString("role"));
         String id = "U_" + username;
 
+        User user;
         switch (role) {
             case ADMIN:
-                return new Admin(id, username, password);
+                user = new Admin(id, username, password);
+                break;
             case SELLER:
-                return new Seller(id, username, password);
+                user = new Seller(id, username, password);
+                break;
             case BIDDER:
             default:
-                return new Bidder(id, username, password);
+                user = new Bidder(id, username, password);
+                break;
         }
+
+        user.setFullName(rs.getString("fullName"));
+        user.setStatus(rs.getString("status") != null ? rs.getString("status") : "ACTIVE");
+        user.setSuspensionCount(rs.getInt("suspensionCount"));
+        user.setSuspendedUntil(rs.getLong("suspendedUntil"));
+        user.setLastSuspensionTime(rs.getLong("lastSuspensionTime"));
+
+        return user;
     }
 
     private AccountRole parseRole(String role) {
@@ -442,7 +594,7 @@ public class AppDatabase {
             addItem(auction.getItem());
         }
 
-        String sql = "INSERT INTO Auctions (id, item_id, startTime, stopTime, currentHighestPrice, status) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Auctions (id, item_id, startTime, stopTime, currentHighestPrice, status, sellerId) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, auction.getId());
             pstmt.setString(2, auction.getItem().getId());
@@ -450,6 +602,7 @@ public class AppDatabase {
             pstmt.setString(4, auction.getStopTime().toString());
             pstmt.setDouble(5, auction.getCurrentHighestPrice());
             pstmt.setString(6, auction.getStatus());
+            pstmt.setString(7, auction.getSellerId());
             pstmt.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -492,6 +645,7 @@ public class AppDatabase {
                         rs.getDouble("currentHighestPrice"),
                         rs.getString("status"));
                 auction.setHighestBidderId(rs.getString("highestBidderId"));
+                auction.setSellerId(rs.getString("sellerId"));
                 auction.getBidHistory().addAll(getBidHistory(auction.getId()));
                 return auction;
             }
@@ -517,6 +671,7 @@ public class AppDatabase {
                         rs.getDouble("currentHighestPrice"),
                         rs.getString("status"));
                 auction.setHighestBidderId(rs.getString("highestBidderId"));
+                auction.setSellerId(rs.getString("sellerId"));
                 auction.getBidHistory().addAll(getBidHistory(auction.getId()));
                 auctions.add(auction);
             }
@@ -533,6 +688,83 @@ public class AppDatabase {
             return null;
         }
         return auction;
+    }
+
+    public synchronized List<SuspensionLog> getSuspensionHistory(int filterLevel, String userIdQuery) {
+        List<SuspensionLog> logs = new ArrayList<>();
+        String sql = "SELECT * FROM SuspensionLogs";
+        try (Connection conn = connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                int level = rs.getInt("suspensionLevel");
+                if (filterLevel > 0 && level != filterLevel) continue;
+                
+                String uId = rs.getString("userId");
+                if (userIdQuery != null && !userIdQuery.isEmpty()) {
+                    // userIdQuery có thể là tên đăng nhập, ta cần kiểm tra
+                    User u = findUserById(uId);
+                    if (u == null || !u.getUsername().toLowerCase().contains(userIdQuery.toLowerCase())) {
+                        continue;
+                    }
+                }
+                
+                SuspensionLog log = new SuspensionLog(
+                    rs.getString("id"), uId, level, 
+                    LocalDateTime.parse(rs.getString("timestamp")), 
+                    rs.getString("status")
+                );
+                logs.add(log);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return logs;
+    }
+
+    public synchronized void addSuspensionLog(SuspensionLog log) {
+        String sql = "INSERT INTO SuspensionLogs (id, userId, suspensionLevel, timestamp, status) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, log.getId());
+            pstmt.setString(2, log.getUserId());
+            pstmt.setInt(3, log.getSuspensionLevel());
+            pstmt.setString(4, log.getTimestamp().toString());
+            pstmt.setString(5, log.getStatus());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Lỗi addSuspensionLog: " + e.getMessage());
+        }
+    }
+
+    public synchronized List<Auction> getBidderHistory(String bidderId) {
+        List<Auction> history = new ArrayList<>();
+        List<Auction> allAuctions = getAuctions();
+        for (Auction a : allAuctions) {
+            boolean hasBid = a.getBidHistory().stream().anyMatch(b -> b.getBidderId().equals(bidderId));
+            if (hasBid) {
+                history.add(a);
+            }
+        }
+        return history;
+    }
+
+    public synchronized List<Auction> getSellerHistory(String sellerId) {
+        List<Auction> history = new ArrayList<>();
+        List<Auction> allAuctions = getAuctions();
+        for (Auction a : allAuctions) {
+            if (sellerId.equals(a.getSellerId())) {
+                history.add(a);
+            }
+        }
+        return history;
+    }
+
+    public synchronized User findUserById(String id) {
+        String sql = "SELECT * FROM Accounts WHERE username = (SELECT username FROM Accounts WHERE username LIKE ? OR username = ? LIMIT 1)";
+        // Thực ra username trong Accounts đang được dùng làm Primary Key. 
+        // Trong hệ thống hiện tại, getUsername() == id (ví dụ: u.getUsername()). 
+        // Nhưng khi tạo user, id được set là "U_" + UUID, và username là email.
+        // Khoan, bảng Accounts có cột username PRIMARY KEY. Không có cột id.
+        // Vậy id chính là username.
+        return findUserByUsername(id);
     }
 
     private String normalizeUsername(String username) {
