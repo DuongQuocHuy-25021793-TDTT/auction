@@ -32,3 +32,14 @@ target/
 *.ipr
 out/
 account_data.json
+
+
+# Chặn các file Database tự sinh gây conflict
+*.db
+*.db-journal
+*.sqlite
+
+# Chặn các file log hệ thống khi app chạy lỗi
+*.log
+hs_err_pid*
+replay_pid*
