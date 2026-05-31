@@ -32,3 +32,8 @@ target/
 *.ipr
 out/
 account_data.json
+
+# PDF reports
+BaoCao_OnlineAuctionSystem.pdf
+Bao_Cao_Du_An_Dau_Gia.pdf
+*.pdf

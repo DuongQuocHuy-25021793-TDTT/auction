@@ -6,6 +6,15 @@ Tất cả các thay đổi đáng chú ý đối với dự án **Hệ Thống 
 
 ---
 
+## [2.2.0] - 2026-05-31
+
+### Changed
+- Cải thiện trạng thái hiển thị của các nút chức năng trên thanh Sidebar, tối ưu hóa trải nghiệm điều hướng khi chuyển đổi giữa chế độ thông thường và chế độ lịch sử.
+
+### Fixed
+- Sửa lỗi kẹt màn hình chi tiết phiên đấu giá khi người dùng bấm nút Quay lại từ giao diện lịch sử đấu giá của Bidder.
+- Khắc phục lỗi nút Quay lại tự động phát sáng và lỗi nút Lịch sử phát sáng khi bấm quay lại; đảm bảo nút chỉ sáng khi di chuột qua và tự động sáng nút Trang chủ (Tất cả) sau khi quay lại.
+
 ## [2.1.0] - 2026-05-31
 
 ### Added

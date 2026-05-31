@@ -1,6 +1,6 @@
-# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) - v2.1.0
+# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) - v2.2.0
 
-Chào mừng bạn đến với **Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) v2.1.0**, một ứng dụng được thiết kế theo kiến trúc Client-Server đa luồng (Multi-threaded TCP Socket) kết hợp với giao diện đồ họa hiện đại xây dựng trên nền tảng JavaFX 21 và cơ sở dữ liệu SQLite. Phiên bản v2.1.0 đánh dấu sự trưởng thành vượt bậc về hiệu năng với việc tối ưu hóa đồng bộ hóa thời gian thực và loại bỏ triệt để tình trạng treo giao diện.
+Chào mừng bạn đến với **Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) v2.2.0**, một ứng dụng được thiết kế theo kiến trúc Client-Server đa luồng (Multi-threaded TCP Socket) kết hợp với giao diện đồ họa hiện đại xây dựng trên nền tảng JavaFX 21 và cơ sở dữ liệu SQLite. Phiên bản v2.2.0 mang lại các cải tiến quan trọng về trải nghiệm người dùng, sửa chữa các lỗi điều hướng giao diện lịch sử và tối ưu hóa nút bấm điều hướng.
 
 Hệ thống cho phép người dùng đăng ký làm Người bán (Seller) để tạo và đưa các tác phẩm nghệ thuật, đồ điện tử hoặc phương tiện lên sàn đấu giá, hoặc đăng ký làm Người mua (Bidder) để tìm kiếm, gửi yêu cầu sản phẩm và tham gia đấu giá trực tiếp theo thời gian thực.
 
@@ -11,7 +11,7 @@ Hệ thống cho phép người dùng đăng ký làm Người bán (Seller) đ�
 2. [Công Nghệ Sử Dụng & Yêu Cầu Cài Đặt](#công-nghệ-sử-dụng--yêu-cầu-cài-đặt)
 3. [Cấu Trúc Thư Mục & Các Module Chính](#cấu-trúc-thư-mục--các-module-chính)
 4. [Hướng Dẫn Cài Đặt & Chạy Chương Trình](#hướng-dẫn-cài-đặt--chạy-chương-trình)
-5. [Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.1.0)](#danh-sách-chức-năng-cốt-lõi--cải-tiến-mới-v210)
+5. [Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.2.0)](#danh-sách-chức-năng-cốt-lõi--cải-tiến-mới-v220)
 6. [Nhật Ký Thay Đổi (Changelog)](CHANGELOG.md)
 
 ---
@@ -97,18 +97,18 @@ mvn javafx:run
 
 ---
 
-## Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.1.0)
+## Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.2.0)
 
-Phiên bản **v2.1.0** tự hào mang đến các tính năng mạnh mẽ và cải tiến vượt trội sau:
+Phiên bản **v2.2.0** tự hào mang đến các tính năng mạnh mẽ, sửa lỗi giao diện và cải tiến vượt trội sau:
 
-| Phân hệ / Tính năng | Mô tả chi tiết chức năng & cải tiến mới tại v2.1.0 |
+| Phân hệ / Tính năng | Mô tả chi tiết chức năng & cải tiến mới tại v2.2.0 |
 | :--- | :--- |
 | **Bảo Mật Tài Khoản** | Quản lý người dùng theo vai trò (Admin/Seller/Bidder). Mật khẩu được mã hóa một chiều bằng SHA-256 cực kỳ an toàn. |
 | **Quản Lý Cửa Sổ Mượt Mà** | Mặc định khởi chạy ứng dụng ở chế độ **Toàn màn hình**. Sửa đổi triệt để lỗi tự động thu nhỏ cửa sổ trên Windows khi điều hướng giữa Đăng nhập, Đăng ký và Màn hình chính. |
 | **Phân Loại Tab Đấu Giá** | Giao diện chính tự động ẩn các phiên đấu giá đã kết thúc. Phân chia trực quan thành 2 tab: **Đang diễn ra** (mặc định) và **Chuẩn bị diễn ra**. |
 | **Giá Hiện Tại Trực Quan** | Hiển thị trực tiếp **Giá cao nhất hiện tại** (`Giá cao nhất: ... $`) ngay trên thẻ đấu giá, phía trên đồng hồ đếm ngược. |
 | **Điều Hướng Lịch Sử Mới** | Nút **Quay lại** được di chuyển lên trên cùng. Đổi nút "Trang chủ" thành nút **Tất cả**. Cho phép Seller theo dõi tất cả các phiên đã tạo dù có lượt đặt giá hay chưa. |
-| **Xử Lý Trạng Thái Trống** | Hiển thị chữ **"Không có"** thân thiện tại toàn bộ các danh sách trống (phiên đấu giá, lịch sử, danh sách người dùng) thay vì để trống trơn. |
+| **Xử Lý Trạng thái Trống** | Hiển thị chữ **"Không có"** thân thiện tại toàn bộ các danh sách trống (phiên đấu giá, lịch sử, danh sách người dùng) thay vì để trống trơn. |
 | **Giao Diện Admin Tối Giản** | Khi Admin quản lý tài khoản, sidebar tự động ẩn các lựa chọn khác và chỉ hiển thị nút **← Quay lại** ở trên cùng. Bổ sung các tab phân loại nhanh bên trái (**Tất cả**, **Seller**, **Bidder**) sắp xếp mặc định theo ID. Nút Quay lại được thiết lập luôn trở về Trang chủ chuẩn xác. |
 | **Nâng Cấp Lịch Sử Admin** | Đổi tên sidebar thành **Lịch sử**. Ẩn nút "Quản lý tài khoản" khi đang xem Lịch sử. Tích hợp thanh tìm kiếm và bộ lọc ComboBox vai trò (Tất cả, Seller, Bidder) sắp xếp theo ID cho danh sách tài khoản vi phạm. Tự động đổi Search Prompt tương ứng theo từng tab lịch sử. |
 | **Đếm Ngược Real-time** | Giao diện tự động đếm lùi thời gian (Giờ:Phút:Giây) cho mỗi phiên đấu giá và tự động vô hiệu hóa nút đặt giá khi hết giờ. |
@@ -116,6 +116,7 @@ Phiên bản **v2.1.0** tự hào mang đến các tính năng mạnh mẽ và c
 | **Biểu Đồ Lịch Sử Giá** | Vẽ biểu đồ đường (Line Chart) thời gian thực ngay trên giao diện để theo dõi sự cạnh tranh và biến động giá của sản phẩm. |
 | **Chốt Phiên Tự Động** | Máy chủ tự động đóng phiên khi hết giờ, tìm ra người trả giá cao nhất và lưu trạng thái thành công vào Database. |
 | **Quyền Lực Admin** | Admin có quyền ngưng phiên (Force Stop) ngay lập tức hoặc xóa các phiên đấu giá vi phạm. |
+| **Sửa Lỗi Điều Hướng Lịch Sử (v2.2.0)** | Khắc phục lỗi kẹt giao diện đấu giá của Bidder khi bấm Quay lại từ lịch sử; sửa lỗi hiển thị đèn sáng không chính xác trên các nút Sidebar để tối ưu hóa trải nghiệm điều hướng. |
 
 ---
 

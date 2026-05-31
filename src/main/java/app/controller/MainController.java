@@ -754,8 +754,8 @@ public class MainController {
         if (btnElec != null) btnElec.getStyleClass().setAll("button", "sidebar-btn");
         if (btnVeh != null) btnVeh.getStyleClass().setAll("button", "sidebar-btn");
         if (btnManageAccounts != null) btnManageAccounts.getStyleClass().setAll("button", "sidebar-btn");
-        if (btnHistory != null) btnHistory.getStyleClass().setAll("button", "sidebar-btn-active");
-        if (btnBackHistory != null) btnBackHistory.getStyleClass().setAll("button", "sidebar-btn-active");
+        if (btnHistory != null) btnHistory.getStyleClass().setAll("button", "sidebar-btn");
+        if (btnBackHistory != null) btnBackHistory.getStyleClass().setAll("button", "sidebar-btn");
         
         normalSidebar.setVisible(true); normalSidebar.setManaged(true);
         auctionSidebar.setVisible(false); auctionSidebar.setManaged(false);
@@ -807,11 +807,17 @@ public class MainController {
 
     @FXML
     public void hideHistoryMode(ActionEvent event) {
+        if (activeAuction != null) {
+            handleBackToList();
+            return;
+        }
+        
         isHistoryMode = false;
         setButtonVisible(btnHistory, true);
         setButtonVisible(btnBackHistory, false);
         
         historyCenterContent.setVisible(false); historyCenterContent.setManaged(false);
+        auctionDetailContent.setVisible(false); auctionDetailContent.setManaged(false);
         normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
         
         // Restore category buttons text if changed
@@ -824,7 +830,7 @@ public class MainController {
         btnElec.setVisible(true); btnElec.setManaged(true);
         btnVeh.setVisible(true); btnVeh.setManaged(true);
         
-        loadAuctionItems();
+        setActiveFilter(btnAll, null);
     }
     
     @FXML
@@ -879,10 +885,14 @@ public class MainController {
         if (btnManageAccounts != null) btnManageAccounts.getStyleClass().setAll("button", "sidebar-btn");
         if (activeBtn != null) activeBtn.getStyleClass().setAll("button", "sidebar-btn-active");
         currentFilterType = type;
-        if (isHistoryMode) {
-            loadHistoryItems();
+        if (activeAuction != null) {
+            handleBackToList();
         } else {
-            loadAuctionItems();
+            if (isHistoryMode) {
+                loadHistoryItems();
+            } else {
+                loadAuctionItems();
+            }
         }
     }
 
@@ -1463,9 +1473,16 @@ public class MainController {
         }
         
         normalSidebar.setVisible(true); normalSidebar.setManaged(true);
-        normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
         
-        loadAuctionItems();
+        if (isHistoryMode) {
+            historyCenterContent.setVisible(true); historyCenterContent.setManaged(true);
+            normalCenterContent.setVisible(false); normalCenterContent.setManaged(false);
+            loadHistoryItems();
+        } else {
+            normalCenterContent.setVisible(true); normalCenterContent.setManaged(true);
+            historyCenterContent.setVisible(false); historyCenterContent.setManaged(false);
+            loadAuctionItems();
+        }
     }
 
     @FXML public void handleQuickBid500() { placeBidAndUpdate(500); }
