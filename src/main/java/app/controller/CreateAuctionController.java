@@ -352,7 +352,10 @@ public class CreateAuctionController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/Main.fxml"));
             Scene scene = new Scene(loader.load());
             Stage stage = (Stage) formContainer.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            if (wasMaximized) stage.setMaximized(true);
         } catch (IOException e) {
             e.printStackTrace();
         }

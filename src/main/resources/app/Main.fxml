@@ -125,6 +125,7 @@
    <center>
       <VBox prefHeight="200.0" prefWidth="100.0" styleClass="main-content" BorderPane.alignment="CENTER">
          <children>
+            <Label fx:id="lblTrialBanner" text="--- BẢN DÙNG THỬ ---" alignment="CENTER" maxWidth="Infinity" visible="false" managed="false" style="-fx-text-fill: #E74C3C; -fx-font-weight: bold; -fx-font-size: 16px; -fx-padding: 10 0 10 0; -fx-background-color: #FADBD8; -fx-background-radius: 5; -fx-margin: 0 0 10 0;"/>
             <!-- Normal Content -->
             <VBox fx:id="normalCenterContent" VBox.vgrow="ALWAYS">
                <children>

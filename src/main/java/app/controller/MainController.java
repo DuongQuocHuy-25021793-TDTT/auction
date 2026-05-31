@@ -87,6 +87,7 @@ public class MainController {
     private TextField searchField;
 
     // --- Biến giao diện in-place detail ---
+    @FXML private Label lblTrialBanner;
     @FXML private VBox normalSidebar, auctionSidebar;
     @FXML private VBox normalCenterContent, auctionDetailContent;
     @FXML private VBox adminUsersContent, userListContainer;
@@ -170,6 +171,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        ClientConnection.getInstance().addMessageListener(this::onMessageReceived);
         ClientConnection.getInstance().connect(NetworkConfig.HOST, NetworkConfig.PORT);
         applySessionState();
         loadAuctionItems();
@@ -185,6 +187,22 @@ public class MainController {
         }));
         mainRefreshTimeline.setCycleCount(Animation.INDEFINITE);
         mainRefreshTimeline.play();
+    }
+
+    private void onMessageReceived(Message message) {
+        Platform.runLater(() -> {
+            if ("BID".equals(message.getAction())) {
+                if (activeAuction != null) {
+                    BidTransaction newBid = gson.fromJson(message.getData(), BidTransaction.class);
+                    if (newBid.getAuctionId().equals(activeAuction.getId())) {
+                        boolean success = activeAuction.placeBid(newBid);
+                        if (success) {
+                            updateAuctionDynamicInfo(activeAuction);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     @FXML
@@ -517,6 +535,11 @@ public class MainController {
         setButtonVisible(requestProductButton, isBidder);
         setButtonVisible(createAuctionButton, isSeller);
         setButtonVisible(btnManageAccounts, isAdmin);
+        
+        if (lblTrialBanner != null) {
+            lblTrialBanner.setVisible(!loggedIn);
+            lblTrialBanner.setManaged(!loggedIn);
+        }
         
         if (!isHistoryMode && !adminUsersContent.isVisible()) {
             setButtonVisible(btnHistory, loggedIn);
@@ -1254,14 +1277,12 @@ public class MainController {
             if (autoBidStatusLabel != null) autoBidStatusLabel.setText("");
         }
 
-        // Khởi động Timeline cập nhật liên tục mỗi 1 giây
+        // Khởi động Timeline cập nhật liên tục mỗi 0.5 giây
         if (detailUpdateTimeline != null) detailUpdateTimeline.stop();
-        detailUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
-            Auction latest = database.findAuctionById(activeAuction.getId());
-            if (latest != null) {
-                activeAuction = latest;
-                updateAuctionDynamicInfo(latest);
-                checkAutoBidLogic(latest);
+        detailUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(0.5), ev -> {
+            if (activeAuction != null) {
+                updateAuctionDynamicInfo(activeAuction);
+                checkAutoBidLogic(activeAuction);
             }
         }));
         detailUpdateTimeline.setCycleCount(Animation.INDEFINITE);
@@ -1360,7 +1381,7 @@ public class MainController {
     private void updateAuctionDynamicInfo(Auction auction) {
         detailPriceLabel.setText("Giá hiện tại: " + auction.getCurrentHighestPrice() + " USD");
         
-        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(auction.getId());
+        List<BidTransaction> history = auction.getBidHistory();
         if (history != null && !history.isEmpty()) {
             String bidderId = history.get(history.size()-1).getBidderId();
             String bidderUsername = bidderId.startsWith("U_") ? bidderId.substring(2) : bidderId;
@@ -1402,17 +1423,31 @@ public class MainController {
 
         // Vẽ lại biểu đồ
         int newSize = history != null ? history.size() : 0;
-        if (detailChart.getUserData() == null || (int) detailChart.getUserData() != newSize) {
+        int currentSize = detailChart.getUserData() == null ? 0 : (int) detailChart.getUserData();
+        
+        if (currentSize != newSize) {
             detailChart.setAnimated(false);
-            detailChart.getData().clear();
-            XYChart.Series<String, Number> series = new XYChart.Series<>();
-            if (history != null) {
-                for (BidTransaction b : history) {
+            if (detailChart.getData().isEmpty() || currentSize > newSize || currentSize == 0) {
+                detailChart.getData().clear();
+                XYChart.Series<String, Number> series = new XYChart.Series<>();
+                if (history != null) {
+                    for (BidTransaction b : history) {
+                        series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
+                    }
+                }
+                detailChart.getData().add(series);
+            } else if (history != null) {
+                XYChart.Series<String, Number> series = detailChart.getData().get(0);
+                for (int i = currentSize; i < newSize; i++) {
+                    BidTransaction b = history.get(i);
                     series.getData().add(new XYChart.Data<>(b.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")), b.getBidAmount()));
                 }
             }
-            detailChart.getData().add(series);
             detailChart.setUserData(newSize);
+        }
+
+        if (isSellerView()) {
+            loadTopBidders();
         }
     }
 
@@ -1563,7 +1598,7 @@ public class MainController {
         AutoBidConfig config = autoBidConfigs.get(latestAuction.getId());
         if (config == null || !config.isActivated) return;
 
-        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(latestAuction.getId());
+        List<BidTransaction> history = latestAuction.getBidHistory();
         String currentHighestBidder = (history != null && !history.isEmpty()) ? history.get(history.size()-1).getBidderId() : "";
         
         // Nếu mình không phải là người đặt giá cao nhất và có thể đấu giá tiếp
@@ -1611,9 +1646,11 @@ public class MainController {
     private void loadTopBidders() {
         if (activeAuction == null || topBiddersContainer == null) return;
         topBiddersContainer.getChildren().clear();
-        List<BidTransaction> history = AppDatabase.getInstance().getBidHistory(activeAuction.getId());
+        List<BidTransaction> history = activeAuction.getBidHistory();
         if (history == null || history.isEmpty()) {
-            topBiddersContainer.getChildren().add(new Label("Chưa có lượt đặt giá nào."));
+            Label emptyLbl = new Label("Chưa có lượt đặt giá nào.");
+            emptyLbl.setStyle("-fx-text-fill: white;");
+            topBiddersContainer.getChildren().add(emptyLbl);
             return;
         }
         

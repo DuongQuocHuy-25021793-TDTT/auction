@@ -1,6 +1,6 @@
-# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) - v2.0.0
+# Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) - v2.1.0
 
-Chào mừng bạn đến với **Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) v2.0.0**, một ứng dụng được thiết kế theo kiến trúc Client-Server đa luồng (Multi-threaded TCP Socket) kết hợp với giao diện đồ họa hiện đại xây dựng trên nền tảng JavaFX 21 và cơ sở dữ liệu SQLite. Phiên bản v2.0.0 đánh dấu sự trưởng thành vượt bậc về độ ổn định hệ thống, sửa đổi lỗi hiển thị cửa sổ trên Windows, tối ưu hóa giao diện người dùng (UI/UX) và cung cấp bộ công cụ quản trị mạnh mẽ, trực quan hơn cho Quản trị viên (Admin).
+Chào mừng bạn đến với **Hệ Thống Đấu Giá Trực Tuyến (Online Auction System) v2.1.0**, một ứng dụng được thiết kế theo kiến trúc Client-Server đa luồng (Multi-threaded TCP Socket) kết hợp với giao diện đồ họa hiện đại xây dựng trên nền tảng JavaFX 21 và cơ sở dữ liệu SQLite. Phiên bản v2.1.0 đánh dấu sự trưởng thành vượt bậc về hiệu năng với việc tối ưu hóa đồng bộ hóa thời gian thực và loại bỏ triệt để tình trạng treo giao diện.
 
 Hệ thống cho phép người dùng đăng ký làm Người bán (Seller) để tạo và đưa các tác phẩm nghệ thuật, đồ điện tử hoặc phương tiện lên sàn đấu giá, hoặc đăng ký làm Người mua (Bidder) để tìm kiếm, gửi yêu cầu sản phẩm và tham gia đấu giá trực tiếp theo thời gian thực.
 
@@ -11,7 +11,7 @@ Hệ thống cho phép người dùng đăng ký làm Người bán (Seller) đ�
 2. [Công Nghệ Sử Dụng & Yêu Cầu Cài Đặt](#công-nghệ-sử-dụng--yêu-cầu-cài-đặt)
 3. [Cấu Trúc Thư Mục & Các Module Chính](#cấu-trúc-thư-mục--các-module-chính)
 4. [Hướng Dẫn Cài Đặt & Chạy Chương Trình](#hướng-dẫn-cài-đặt--chạy-chương-trình)
-5. [Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.0.0)](#danh-sách-chức-năng-cốt-lõi--cải-tiến-mới-v200)
+5. [Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.1.0)](#danh-sách-chức-năng-cốt-lõi--cải-tiến-mới-v210)
 6. [Nhật Ký Thay Đổi (Changelog)](CHANGELOG.md)
 
 ---
@@ -97,11 +97,11 @@ mvn javafx:run
 
 ---
 
-## Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.0.0)
+## Danh Sách Chức Năng Cốt Lõi & Cải Tiến Mới (v2.1.0)
 
-Phiên bản **v2.0.0** tự hào mang đến các tính năng mạnh mẽ và cải tiến vượt trội sau:
+Phiên bản **v2.1.0** tự hào mang đến các tính năng mạnh mẽ và cải tiến vượt trội sau:
 
-| Phân hệ / Tính năng | Mô tả chi tiết chức năng & cải tiến mới tại v2.0.0 |
+| Phân hệ / Tính năng | Mô tả chi tiết chức năng & cải tiến mới tại v2.1.0 |
 | :--- | :--- |
 | **Bảo Mật Tài Khoản** | Quản lý người dùng theo vai trò (Admin/Seller/Bidder). Mật khẩu được mã hóa một chiều bằng SHA-256 cực kỳ an toàn. |
 | **Quản Lý Cửa Sổ Mượt Mà** | Mặc định khởi chạy ứng dụng ở chế độ **Toàn màn hình**. Sửa đổi triệt để lỗi tự động thu nhỏ cửa sổ trên Windows khi điều hướng giữa Đăng nhập, Đăng ký và Màn hình chính. |

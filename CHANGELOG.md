@@ -6,9 +6,27 @@ Tất cả các thay đổi đáng chú ý đối với dự án **Hệ Thống 
 
 ---
 
-## [2.0.0] - 2026-05-31
+## [2.1.0] - 2026-05-31
 
 ### Added
+- **Đồng bộ thời gian thực (Real-time Broadcast):**
+  - Tích hợp mạng đa luồng, máy chủ tự động gửi thông báo Broadcast khi có giá đấu mới tới tất cả các kết nối.
+  - Client tự động xử lý giao dịch trên bộ nhớ cục bộ mà không cần tải lại toàn bộ cơ sở dữ liệu.
+- Bổ sung dải băng (Banner) thông báo "--- BẢN DÙNG THỬ ---" tại trung tâm giao diện dành riêng cho tài khoản Khách vãng lai (GUEST).
+
+### Changed
+- **Tối ưu hóa hiệu năng cực đại (Extreme Performance Optimization):**
+  - Tách hoàn toàn tiến trình gửi dữ liệu mạng (Network I/O) sang luồng chạy nền (Background Thread), giúp giao diện không bao giờ bị khựng lại chờ mạng.
+  - Tối ưu biểu đồ (LineChart): chỉ vẽ thêm các điểm giá trị mới thay vì xóa và vẽ lại toàn bộ đồ thị từ đầu.
+  - Xóa bỏ hàng loạt các truy vấn SQLite thừa trên luồng giao diện UI, ngăn chặn hoàn toàn hiện tượng nghẽn nút chai (Lock Contention) khi người dùng nhấn đặt giá liên tục với cường độ cao.
+
+### Fixed
+- Sửa lỗi biểu đồ và thời gian đấu giá đóng băng không cập nhật đối với chế độ dùng thử (GUEST).
+- Khắc phục triệt để lỗi ứng dụng bị kẹt "Not Responding" (Treo giao diện) trong thời gian dài khi có lượng tương tác quá lớn trên hệ thống.
+
+---
+
+## [2.0.0] - 2026-05-31### Added
 - **Trải nghiệm Đấu giá mới:**
   - Phân chia danh sách đấu giá ở màn hình chính thành 2 tab: **"Đang diễn ra"** (mặc định) và **"Chuẩn bị diễn ra"**.
   - Hiển thị trực tiếp **Giá cao nhất hiện tại** (`Giá cao nhất: ... $`) ngay trên mỗi thẻ đấu giá (phía trên đồng hồ đếm ngược).
