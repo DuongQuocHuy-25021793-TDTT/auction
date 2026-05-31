@@ -83,16 +83,15 @@ Sử dụng Maven để dọn dẹp, biên dịch và chạy các bài test:
 mvn clean test
 ```
 
-### Bước 2: Khởi động Server (Cổng 8080)
-Mở terminal tại thư mục gốc của dự án:
+### Bước 2: Khởi động Server
+Mở terminal tại thư mục gốc của dự án và chạy:
 ```bash
 mvn exec:java -Dexec.mainClass="app.server.ServerMain"
-```
 
 ### Bước 3: Khởi động Client
 Mở một Terminal khác tại thư mục gốc và chạy Client:
 ```bash
-mvn javafx:run
+mvn exec:java -Dexec.mainClass="app.Launcher"
 ```
 
 ---
