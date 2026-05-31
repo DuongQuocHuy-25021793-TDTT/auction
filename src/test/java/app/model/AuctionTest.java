@@ -3,7 +3,11 @@ package app.model;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+<<<<<<< HEAD
 import static org.junit.jupiter.api.Assertions.assertNull;
+=======
+import static org.junit.jupiter.api.Assertions.assertFalse;
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,7 @@ public class AuctionTest {
 
     @BeforeEach
     public void setUp() {
+<<<<<<< HEAD
         
         item = new Art("I_TEST", "Tranh Hoa Hướng Dương", "Tranh sơn dầu", 1000.0, "Van Gogh", 1888);
         auction = new Auction("A_TEST", item, 1000.0);
@@ -41,13 +46,39 @@ public class AuctionTest {
         BidTransaction negativeBid = new BidTransaction("BID_03", "A_TEST", "UserC", -500.0, LocalDateTime.now(),"test");
       
         assertEquals("INVALID_AMOUNT", auction.validateBid(negativeBid), "Phải báo lỗi INVALID_AMOUNT khi giá trị âm");
+=======
+        item = new Art("I_TEST", "Tranh Hoa Hướng Dương", "Tranh sơn dầu", 1000.0, "Van Gogh", 1888);
+        auction = new Auction("A_TEST", item, LocalDateTime.now().minusMinutes(10), LocalDateTime.now().plusMinutes(10), 1000.0, "RUNNING");
+    }
+
+    @Test
+    public void testPlaceBid_Success() {
+        BidTransaction validBid = new BidTransaction("BID_01", "A_TEST", "UserA", 1500.0, LocalDateTime.now());
+        assertTrue(auction.placeBid(validBid), "Giá 1500 phải được chấp nhận vì lớn hơn 1000");
+    }
+
+    @Test
+    public void testPlaceBid_TooLow() {
+        BidTransaction lowBid = new BidTransaction("BID_02", "A_TEST", "UserB", 900.0, LocalDateTime.now());
+        assertFalse(auction.placeBid(lowBid), "Phải trả về false khi đặt giá thấp hơn giá khởi điểm");
+    }
+
+    @Test
+    public void testPlaceBid_InvalidAmount() {
+        BidTransaction negativeBid = new BidTransaction("BID_03", "A_TEST", "UserC", -500.0, LocalDateTime.now());
+        assertFalse(auction.placeBid(negativeBid), "Phải trả về false khi giá trị âm");
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
     }
 
     @Test
     public void testPlaceBid_UpdatesHighestPrice() {
+<<<<<<< HEAD
     
         BidTransaction newBid = new BidTransaction("BID_04", "A_TEST", "UserD", 2500.0, LocalDateTime.now(),"test");
         
+=======
+        BidTransaction newBid = new BidTransaction("BID_04", "A_TEST", "UserD", 2500.0, LocalDateTime.now());
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
         boolean isSuccess = auction.placeBid(newBid);
         
         assertTrue(isSuccess, "Hàm placeBid phải trả về true");

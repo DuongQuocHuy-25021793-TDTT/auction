@@ -136,6 +136,7 @@ public class ClientHandler implements Runnable {
             return;
         }
 
+<<<<<<< HEAD
         synchronized (auction) {
             System.out.println("Auction status=" + auction.getStatus() + ", currentPrice=" + auction.getCurrentHighestPrice() + ", start=" + auction.getStartTime() + ", stop=" + auction.getStopTime());
             
@@ -178,6 +179,19 @@ public class ClientHandler implements Runnable {
                 System.out.println("Server từ chối yêu cầu đặt giá.");
                 out.println("FAIL_UNKNOWN"); 
             }
+=======
+        boolean success = auction.placeBid(bid);
+        if (success) {
+            AppDatabase.getInstance().updateAuctionPrice(auction.getId(), auction.getCurrentHighestPrice(), auction.getHighestBidderId());
+            AppDatabase.getInstance().saveBidTransaction(bid);
+            
+            // Cập nhật lại stopTime lên Database (để lưu Sniper Protection nếu có)
+            AppDatabase.getInstance().updateAuctionStopTime(auction.getId(), auction.getStopTime().toString());
+
+            System.out.println("Server đã cập nhật giá mới và lưu vào CSDL: " + auction.getCurrentHighestPrice());
+        } else {
+            System.out.println("Server từ chối yêu cầu đặt giá.");
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
         }
     }
 

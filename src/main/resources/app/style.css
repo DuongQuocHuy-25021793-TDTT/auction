@@ -57,15 +57,72 @@
     -fx-padding: 15;
 }
 
+/* Style cho nút Đăng nhập dạng viền (Outline) */
 .btn-outline {
     -fx-background-color: transparent;
-    -fx-border-color: #27ae60;     
+    -fx-border-color: #27ae60;      /* Cùng màu xanh lá với theme của bạn */
     -fx-border-width: 2px;
     -fx-border-radius: 5px;
-    -fx-text-fill: #27ae60;         
+    -fx-text-fill: #27ae60;         /* Chữ màu xanh */
+    -fx-font-weight: bold;
     -fx-cursor: hand;
 }
 
 .btn-outline:hover {
-    -fx-background-color: #e8f8f5;  
+    -fx-background-color: #e8f8f5;  /* Khi hover sẽ hiện nền xanh siêu nhạt */
 }
+
+/* Custom CheckBox */
+.custom-checkbox .box {
+    -fx-background-color: transparent;
+    -fx-border-color: #BDC3C7;
+    -fx-border-radius: 3px;
+}
+
+.custom-checkbox:selected .box {
+    -fx-background-color: #27AE60;
+    -fx-border-color: #27AE60;
+}
+
+.custom-checkbox:selected .mark {
+    -fx-background-color: white;
+}
+
+.info-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 4);
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+}
+
+.btn-outline-white {
+    -fx-background-color: transparent;
+    -fx-border-color: #BDC3C7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-text-fill: #BDC3C7;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-outline-white:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-text-fill: white;
+    -fx-border-color: white;
+}
+
+/* Keep prompt text visible on focus */
+.text-input:focused {
+    -fx-prompt-text-fill: #95a5a6;
+}
+
+.text-input {
+    -fx-prompt-text-fill: #95a5a6;
+}
+
+.success-text {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}

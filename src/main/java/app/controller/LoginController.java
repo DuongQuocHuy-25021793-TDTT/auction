@@ -8,9 +8,13 @@ import java.net.Socket;
 import com.google.gson.Gson;
 
 import app.database.Session;
+<<<<<<< HEAD
 import app.model.Account;
 import app.model.AccountRole;
 import app.model.Message;
+=======
+import app.model.User;
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -45,6 +49,7 @@ public class LoginController {
             return;
         }
 
+<<<<<<< HEAD
         
         try (Socket socket = new Socket(SERVER_IP, SERVER_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -54,6 +59,47 @@ public class LoginController {
             Message msg = new Message("LOGIN", username + ":" + password);
             Gson gson = new Gson();
             out.println(gson.toJson(msg));
+=======
+        User user = AppDatabase.getInstance().authenticate(username, password);
+        if (user == null) {
+            statusLabel.setText("Sai email hoặc mật khẩu!");
+            statusLabel.setStyle("-fx-text-fill: red;");
+            return;
+        }
+
+        if ("PENDING".equals(user.getStatus())) {
+            statusLabel.setText("Tài khoản đang chờ duyệt!");
+            statusLabel.setStyle("-fx-text-fill: orange;");
+            return;
+        }
+
+        if ("REJECTED".equals(user.getStatus())) {
+            statusLabel.setText("Tài khoản đã bị từ chối!");
+            statusLabel.setStyle("-fx-text-fill: red;");
+            return;
+        }
+
+        if ("SUSPENDED".equals(user.getStatus())) {
+            if (user.getSuspendedUntil() > 0 && System.currentTimeMillis() > user.getSuspendedUntil()) {
+                // Hết hạn đình chỉ -> Khôi phục
+                user.setStatus("ACTIVE");
+                user.setSuspendedUntil(0);
+                AppDatabase.getInstance().updateUserStatus(user);
+            } else {
+                if (user.getSuspendedUntil() == -1) {
+                    statusLabel.setText("Tài khoản đã bị đình chỉ vĩnh viễn!");
+                } else {
+                    java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(user.getSuspendedUntil()), java.time.ZoneId.systemDefault());
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                    statusLabel.setText("Tài khoản bị đình chỉ đến: " + date.format(formatter));
+                }
+                statusLabel.setStyle("-fx-text-fill: red;");
+                return;
+            }
+        }
+
+        Session.setCurrentUser(user);
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
 
         
             String response = in.readLine();
@@ -77,6 +123,15 @@ public class LoginController {
                 statusLabel.setStyle("-fx-text-fill: red;");
             }
 
+<<<<<<< HEAD
+=======
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
+            stage.setScene(scene);
+            stage.setMaximized(true);
+            stage.setTitle("Auction System - " + user.getRole());
+>>>>>>> 08664749faefa4fa4fb6e7af2e904320dd937533
         } catch (Exception e) {
             e.printStackTrace();
             statusLabel.setText("Không thể kết nối đến Server. Hãy kiểm tra xem Server đã chạy chưa!");
@@ -91,7 +146,10 @@ public class LoginController {
             Scene scene = new Scene(loader.load());
 
             Stage stage = (Stage) usernameField.getScene().getWindow();
+            boolean wasMaximized = stage.isMaximized();
+            if (wasMaximized) stage.setMaximized(false);
             stage.setScene(scene);
+            if (wasMaximized) stage.setMaximized(true);
             stage.setTitle("Đăng ký tài khoản");
         } catch (Exception e) {
             e.printStackTrace();

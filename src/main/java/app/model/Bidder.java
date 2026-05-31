@@ -3,10 +3,15 @@ package app.model;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import  java.util.Map;
 import java.util.UUID;
 
 public class Bidder extends User {
-    private List<BidTransaction> bidHistory; 
+    private final List<BidTransaction> bidHistory;
+    @Override
+    public AccountRole getRole() {
+        return AccountRole.BIDDER;
+    }
 
     public Bidder(String id, String username, String password) {
         super(id, username, password);
@@ -15,7 +20,7 @@ public class Bidder extends User {
 
     public boolean placeBid(Auction auction, double amount) {
         if (auction == null) {
-            System.out.println("Không tìm thấy giao dịch.");
+            System.out.println("Không tìm thấy phiên đấu giá.");
             return false;
         }
         if (amount <= 0) {
@@ -24,7 +29,7 @@ public class Bidder extends User {
         }
 
         BidTransaction bid = new BidTransaction(
-                UUID.randomUUID().toString(), 
+                UUID.randomUUID().toString(),
                 auction.getId(),
                 getId(),
                 amount,
@@ -35,12 +40,31 @@ public class Bidder extends User {
         boolean success = auction.placeBid(bid);
         if (success) {
             this.bidHistory.add(bid);
-            System.out.println(username + " đã đặt giá tiền là: " + amount);
+            System.out.println(username + " đã đặt giá: " + amount);
         }
         return success;
     }
 
-    public List<BidTransaction>  getBidHistory() {
+    public AuctionProposalRequest createProductRequest(String productType,
+                                                       String productName,
+                                                       String productDescription,
+                                                       Map<String, String> productAttributes,
+                                                       double desiredPrice,
+                                                       long requestedDurationMinutes,
+                                                       LocalDateTime requestedStartTime) {
+        return new AuctionProposalRequest(
+                getId(),
+                getUsername(),
+                productType,
+                productName,
+                productDescription,
+                productAttributes,
+                desiredPrice,
+                requestedDurationMinutes,
+                requestedStartTime);
+    }
+
+    public List<BidTransaction> getBidHistory() {
         return bidHistory;
     }
 }
