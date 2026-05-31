@@ -134,11 +134,11 @@ public class Auction extends Entity {
             return false;
         }
 
-        // Sniper Protection: Nếu bid đặt ở 0.5s cuối cùng, gia hạn thêm 0.5s
+        // Sniper Protection: Nếu bid đặt ở 30s cuối cùng, gia hạn thêm 30s
         double remainingFractional = getRemainingTimeSecondsFractional();
-        if (remainingFractional >= 0 && remainingFractional <= 0.5) {
-            stopTime = stopTime.plusNanos(500_000_000); // 500 milliseconds
-            System.out.println("Sniper Protection: Phiên đấu giá " + getId() + " được gia hạn thêm 0.5s");
+        if (remainingFractional >= 0 && remainingFractional <= 30.0) {
+            stopTime = stopTime.plusSeconds(30); // 30 seconds
+            System.out.println("Sniper Protection: Phiên đấu giá " + getId() + " được gia hạn thêm 30s");
         }
 
         currentHighestPrice = bid.getBidAmount();
