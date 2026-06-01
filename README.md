@@ -6,6 +6,12 @@ Hệ thống cho phép người dùng đăng ký làm Người bán (Seller) đ�
 
 ---
 
+## Tài Nguyên Dự Án
+* **Bản báo cáo PDF**: [Google Drive](https://drive.google.com/file/d/1x11slrvxu3Xsfh8z5S1Dq9JqjYppRr4c/view?usp=sharing)
+* **Video giới thiệu các chức năng**: [Google Drive](https://drive.google.com/file/d/18_m21Mji37ONn9icuT2JNKu99utlmOGi/view)
+
+---
+
 ## Mục Lục
 1. [Mô Tả Bài Toán & Phạm Vi Hệ Thống](#mô-tả-bài-toán--phạm-vi-hệ-thống)
 2. [Công Nghệ Sử Dụng & Yêu Cầu Cài Đặt](#công-nghệ-sử-dụng--yêu-cầu-cài-đặt)
